@@ -10,12 +10,15 @@ import {
   Paper,
   Link as MuiLink,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
+import FacebookIcon from '@mui/icons-material/Facebook';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, error } = useAuth();
+  const { signIn, signInWithGoogle, signInWithFacebook, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +64,28 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setLocalError('');
+      await signInWithGoogle();
+      // No need to navigate as OAuth will redirect
+    } catch (err) {
+      console.error('Error signing in with Google:', err);
+      setLocalError('Failed to sign in with Google. Please try again.');
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    try {
+      setLocalError('');
+      await signInWithFacebook();
+      // No need to navigate as OAuth will redirect
+    } catch (err) {
+      console.error('Error signing in with Facebook:', err);
+      setLocalError('Failed to sign in with Facebook. Please try again.');
+    }
+  };
+
   return (
     <Container maxWidth="sm">
       <Box 
@@ -95,7 +120,32 @@ export default function Login() {
             </Alert>
           )}
           
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
+          {/* Social Login Buttons */}
+          <Box sx={{ mt: 3, width: '100%' }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              onClick={handleGoogleSignIn}
+              sx={{ mb: 2 }}
+            >
+              Sign in with Google
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<FacebookIcon />}
+              onClick={handleFacebookSignIn}
+              sx={{ mb: 2, color: '#1877F2', borderColor: '#1877F2' }}
+            >
+              Sign in with Facebook
+            </Button>
+            
+            <Divider sx={{ my: 2 }}>or</Divider>
+          </Box>
+          
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
               margin="normal"
               required

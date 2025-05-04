@@ -165,6 +165,56 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      setError(null);
+      setAuthLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+      
+      return { success: true, data };
+    } catch (error) {
+      const formattedError = handleError(error);
+      setError(formattedError);
+      return { success: false, error: formattedError };
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Sign in with Facebook
+  const signInWithFacebook = async () => {
+    try {
+      setError(null);
+      setAuthLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+      
+      return { success: true, data };
+    } catch (error) {
+      const formattedError = handleError(error);
+      setError(formattedError);
+      return { success: false, error: formattedError };
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // Sign out
   const signOut = async () => {
     try {
@@ -262,6 +312,8 @@ export function AuthProvider({ children }) {
     error,
     signUp,
     signIn,
+    signInWithGoogle,
+    signInWithFacebook,
     signOut,
     resetPassword,
     updateProfile,
