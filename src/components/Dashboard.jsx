@@ -15,9 +15,13 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  Divider
+  Divider,
+  Button
 } from '@mui/material';
 import { useTheme } from '@mui/material';
+import { useAuth } from '../services/auth/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 import ProceduresOverviewTab from './DashboardTab1';
 import MarketAnalysisTab from './DashboardTab2';
@@ -48,9 +52,17 @@ import {
 
 export default function Dashboard() {
   const theme = useTheme();
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [isDental, setIsDental] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('All');
+  
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
   
   // Handle industry toggle switch
   const handleIndustryChange = () => {
@@ -130,16 +142,26 @@ export default function Dashboard() {
             {industryDescription}
           </Typography>
         </Box>
-        <FormControlLabel
-          control={
-            <Switch 
-              checked={!isDental}
-              onChange={handleIndustryChange}
-              color="primary"
-            />
-          }
-          label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={!isDental}
+                onChange={handleIndustryChange}
+                color="primary"
+              />
+            }
+            label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
+          />
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Box>
       </Box>
       
       {/* Overview Cards */}
