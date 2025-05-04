@@ -23,6 +23,8 @@ import ProceduresOverviewTab from './DashboardTab1';
 import MarketAnalysisTab from './DashboardTab2';
 import PatientDemographicsTab from './DashboardTab3';
 import GrowthPredictionsTab from './DashboardTab4';
+import CompaniesTab from './DashboardTab5';
+import MetropolitanMarketsTab from './DashboardTab6';
 
 // Colors for graphs and charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
@@ -236,6 +238,8 @@ export default function Dashboard() {
           <Tab label="MARKET ANALYSIS" />
           <Tab label="PATIENT DEMOGRAPHICS" />
           <Tab label="GROWTH PREDICTIONS" />
+          <Tab label="COMPANIES" />
+          <Tab label="METROPOLITAN MARKETS" />
         </Tabs>
       </Paper>
       
@@ -279,6 +283,20 @@ export default function Dashboard() {
           isDental={isDental}
           COLORS={COLORS}
           allProcedures={allProcedures}
+        />
+      )}
+      
+      {tabValue === 4 && (
+        <CompaniesTab 
+          isDental={isDental}
+          COLORS={COLORS}
+        />
+      )}
+      
+      {tabValue === 5 && (
+        <MetropolitanMarketsTab 
+          isDental={isDental}
+          COLORS={COLORS}
         />
       )}
       
