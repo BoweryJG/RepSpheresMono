@@ -2,13 +2,13 @@
 // It uses the Brave search and Firecrawl MCP tools to fetch real data where possible
 // and falls back to generated mock data when necessary
 
-const { fetchCompanyData } = require('../searchService');
-const { getNewsArticles, getFeaturedNewsArticles, getTrendingTopics, getUpcomingEvents } = require('../newsService');
+import { fetchCompanyData } from '../searchService.js';
+import { getNewsArticles, getFeaturedNewsArticles, getTrendingTopics, getUpcomingEvents } from '../newsService.js';
 
 /**
  * Main function to populate all data
  */
-async function populateAllData() {
+export async function populateAllData() {
   console.log('Starting data population process...');
   
   try {
@@ -61,14 +61,4 @@ async function populateIndustryData(industry) {
   } catch (error) {
     console.error(`Error populating ${industry} industry data:`, error);
   }
-}
-
-// Export the main function
-module.exports = {
-  populateAllData
-};
-
-// If this script is run directly, execute the population function
-if (require.main === module) {
-  populateAllData();
 }

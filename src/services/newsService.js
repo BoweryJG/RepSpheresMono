@@ -8,9 +8,6 @@
 
 import { supabaseClient } from './supabase/supabaseClient.js';
 
-// Brave Search API key
-const BRAVE_API_KEY = "BSA_7x47Vsptl73VPDvsvNFEjAG5s30";
-
 /**
  * Fetch news articles for the specified industry
  * @param {string} industry - 'dental' or 'aesthetic'
@@ -23,54 +20,8 @@ const BRAVE_API_KEY = "BSA_7x47Vsptl73VPDvsvNFEjAG5s30";
  * @returns {Promise<Array>} - Array of news article objects
  */
 export const getNewsArticles = async (industry, options = {}) => {
-  const { 
-    limit = 10, 
-    offset = 0, 
-    category = null, 
-    source = null,
-    searchTerm = null
-  } = options;
-
-  try {
-    console.log(`Fetching ${industry} news articles...`);
-    
-    // First try to get data from Supabase
-    let query = supabaseClient
-      .from('news_articles')
-      .select('*')
-      .eq('industry', industry)
-      .order('published_date', { ascending: false })
-      .range(offset, offset + limit - 1);
-    
-    if (category) {
-      query = query.eq('category', category);
-    }
-    
-    if (source) {
-      query = query.eq('source', source);
-    }
-    
-    if (searchTerm) {
-      query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
-    }
-    
-    const { data, error } = await query;
-    
-    // If we have data from Supabase, return it
-    if (data && data.length > 0) {
-      console.log(`Found ${data.length} news articles in Supabase`);
-      return data;
-    }
-    
-    // If no data from Supabase or there was an error, use external sources
-    console.log('No news articles found in Supabase, using external sources...');
-    return await fetchNewsFromExternalSources(industry, options);
-  } catch (error) {
-    console.error('Error fetching news articles from Supabase:', error);
-    // If there's an error with Supabase, try the external sources
-    console.log('Error with Supabase, falling back to external sources...');
-    return await fetchNewsFromExternalSources(industry, options);
-  }
+  console.log(`Fetching ${industry} news articles via Brave Search and Firecrawl...`);
+  return await fetchNewsFromExternalSources(industry, options);
 };
 
 /**
@@ -153,7 +104,7 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
     
     // Store the articles in Supabase for future use
     if (articles.length > 0) {
-      storeArticlesInSupabase(articles);
+      await storeArticlesInSupabase(articles);
     }
     
     return articles;
@@ -177,8 +128,7 @@ const fetchFromBraveSearch = async (query, count = 10) => {
       tool_name: 'brave_web_search',
       arguments: {
         query: query,
-        count: count,
-        apiKey: BRAVE_API_KEY
+        count: count
       }
     });
     

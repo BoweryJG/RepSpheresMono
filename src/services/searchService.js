@@ -1,41 +1,16 @@
-// Service for fetching company data from Supabase with fallback to Brave search and Firecrawl
+// Service for fetching company data from Brave search and Firecrawl
 import { supabaseClient } from './supabase/supabaseClient.js';
 
-// Brave Search API key
-const BRAVE_API_KEY = "BSA_7x47Vsptl73VPDvsvNFEjAG5s30";
-
 /**
- * Fetches company data from Supabase with fallback to Brave search and Firecrawl
+ * Fetches company data from Brave search and Firecrawl
  * @param {string} industry - The industry to search for companies (dental or aesthetic)
  * @param {number} limit - Number of results to return
  * @returns {Promise<Array>} - Array of company data
  */
+// Bypass Supabase: always fetch via Brave Search and Firecrawl
 export const fetchCompanyData = async (industry, limit = 10) => {
-  try {
-    console.log(`Fetching ${industry} company data...`);
-    
-    // First try to get data from Supabase
-    const { data, error } = await supabaseClient
-      .from('companies')
-      .select('*')
-      .eq('industry', industry.toLowerCase())
-      .limit(limit);
-    
-    // If we have data from Supabase, return it
-    if (data && data.length > 0) {
-      console.log(`Found ${data.length} companies in Supabase`);
-      return data;
-    }
-    
-    // If no data from Supabase, use Brave search and Firecrawl
-    console.log('No company data found in Supabase, using Brave search and Firecrawl...');
-    return await fetchCompaniesFromExternalSources(industry, limit);
-  } catch (error) {
-    console.error('Error fetching company data:', error);
-    // If there's an error with Supabase, try the external sources
-    console.log('Error with Supabase, falling back to external sources...');
-    return await fetchCompaniesFromExternalSources(industry, limit);
-  }
+  console.log(`Fetching ${industry} company data via Brave Search and Firecrawl...`);
+  return await fetchCompaniesFromExternalSources(industry, limit);
 };
 
 /**
@@ -95,7 +70,7 @@ const fetchCompaniesFromExternalSources = async (industry, limit = 10) => {
     
     // Store the data in Supabase for future use
     if (companies.length > 0) {
-      storeCompaniesInSupabase(companies);
+      await storeCompaniesInSupabase(companies);
     }
     
     return companies;
@@ -119,8 +94,7 @@ const fetchFromBraveSearch = async (query, count = 10) => {
       tool_name: 'brave_web_search',
       arguments: {
         query: query,
-        count: count,
-        apiKey: BRAVE_API_KEY
+        count: count
       }
     });
     
