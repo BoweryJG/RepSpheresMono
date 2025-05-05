@@ -116,13 +116,16 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
 };
 
 /**
- * Fetch data from Brave Search API
+ * Fetch data from Brave Search MCP
  * @param {string} query - Search query
  * @param {number} count - Number of results to return
  * @returns {Promise<Array>} - Array of search results
  */
 const fetchFromBraveSearch = async (query, count = 10) => {
   try {
+    console.log(`Making call to Brave Search MCP with query: "${query}"`);
+    
+    // Use the Brave Search MCP
     const response = await use_mcp_tool({
       server_name: 'brave',
       tool_name: 'brave_web_search',
@@ -132,49 +135,59 @@ const fetchFromBraveSearch = async (query, count = 10) => {
       }
     });
     
+    if (!response || !response.results) {
+      throw new Error('Brave search MCP returned no results');
+    }
+    
+    console.log(`Received ${response.results.length} results from Brave Search MCP`);
     return response.results || [];
   } catch (error) {
-    console.error('Error fetching from Brave Search:', error);
-    return [];
+    console.error('Error with Brave Search MCP:', error);
+    throw error; // Explicitly throw to force fallback
   }
 };
 
 /**
- * Fetch article details using Firecrawl
+ * Fetch article details using Firecrawl MCP
  * @param {string} url - Article URL
  * @returns {Promise<Object>} - Article details
  */
 const fetchArticleDetailsWithFirecrawl = async (url) => {
   try {
+    console.log(`Making call to Firecrawl MCP for URL: ${url}`);
+    
+    // Use the Firecrawl MCP
     const scrapeResult = await use_mcp_tool({
       server_name: 'github.com/mendableai/firecrawl-mcp-server',
       tool_name: 'firecrawl_scrape',
       arguments: {
         url: url,
-        formats: ['markdown'],
+        formats: ['markdown', 'html'],
         onlyMainContent: true
       }
     });
     
-    if (scrapeResult && scrapeResult.markdown) {
-      // Extract information from the scraped content
-      return extractArticleDetailsFromContent(scrapeResult.markdown, url);
+    if (!scrapeResult || !scrapeResult.markdown) {
+      throw new Error(`Firecrawl MCP returned no content for ${url}`);
     }
     
-    return {};
+    console.log(`Successfully extracted content from ${url} using Firecrawl MCP`);
+    // Extract information from the scraped content
+    return extractArticleDetailsFromContent(scrapeResult.markdown, url, scrapeResult.html);
   } catch (error) {
-    console.error('Error fetching article details with Firecrawl:', error);
-    return {};
+    console.error(`Error fetching article details with Firecrawl MCP for ${url}:`, error);
+    throw error; // Explicitly throw to force fallback
   }
 };
 
 /**
  * Extract article details from content
- * @param {string} content - Content to extract details from
+ * @param {string} content - Markdown content to extract details from
  * @param {string} url - Article URL
+ * @param {string} html - HTML content (optional)
  * @returns {Object} - Article details
  */
-const extractArticleDetailsFromContent = (content, url) => {
+const extractArticleDetailsFromContent = (content, url, html) => {
   const details = {
     summary: '',
     content: content,
@@ -185,30 +198,67 @@ const extractArticleDetailsFromContent = (content, url) => {
   
   // Extract summary (first 200 characters)
   if (content.length > 0) {
-    details.summary = content.substring(0, 200).replace(/\n/g, ' ') + '...';
+    // Find the first paragraph that's not too short
+    const paragraphs = content.split('\n\n');
+    for (const paragraph of paragraphs) {
+      if (paragraph.length > 100 && paragraph.length < 500 && !paragraph.startsWith('#')) {
+        details.summary = paragraph;
+        break;
+      }
+    }
+    
+    // If no good paragraph found, use the first 200 characters
+    if (!details.summary) {
+      details.summary = content.substring(0, 200).replace(/\n/g, ' ') + '...';
+    }
   }
   
-  // Extract image URL
-  const imagePattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/;
-  const imageMatch = content.match(imagePattern);
-  if (imageMatch && imageMatch[1]) {
-    details.image_url = imageMatch[1];
+  // Extract image URL - first try markdown format
+  const markdownImagePattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/;
+  const markdownImageMatch = content.match(markdownImagePattern);
+  if (markdownImageMatch && markdownImageMatch[1]) {
+    details.image_url = markdownImageMatch[1];
+  } 
+  // If no markdown image, try to extract from HTML if available
+  else if (html) {
+    const imgTagPattern = /<img[^>]+src="([^"]+)"[^>]*>/i;
+    const imgMatches = html.match(imgTagPattern);
+    if (imgMatches && imgMatches[1]) {
+      details.image_url = imgMatches[1];
+      
+      // Make sure the URL is absolute
+      if (details.image_url.startsWith('/')) {
+        try {
+          const urlObj = new URL(url);
+          details.image_url = `${urlObj.protocol}//${urlObj.hostname}${details.image_url}`;
+        } catch (e) {
+          console.error(`Error creating absolute URL: ${e}`);
+        }
+      }
+    }
   }
   
-  // Extract published date
+  // Extract published date - expanded patterns
   const datePatterns = [
     /published(?:\s+on)?:\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
     /date:\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
-    /(\w+\s+\d{1,2},?\s+\d{4})/i
+    /posted(?:\s+on)?:\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
+    /(\d{1,2}\s+\w+\s+\d{4})/i, // Day Month Year format
+    /(\w+\s+\d{1,2},?\s+\d{4})/i, // Month Day, Year format
+    /(\d{4}-\d{2}-\d{2})/i // ISO format
   ];
   
   for (const pattern of datePatterns) {
     const match = content.match(pattern);
     if (match && match[1]) {
-      const parsedDate = new Date(match[1]);
-      if (!isNaN(parsedDate.getTime())) {
-        details.published_date = parsedDate.toISOString();
-        break;
+      try {
+        const parsedDate = new Date(match[1]);
+        if (!isNaN(parsedDate.getTime())) {
+          details.published_date = parsedDate.toISOString();
+          break;
+        }
+      } catch (e) {
+        console.log(`Failed to parse date: ${match[1]}`);
       }
     }
   }
@@ -218,10 +268,12 @@ const extractArticleDetailsFromContent = (content, url) => {
     details.published_date = new Date().toISOString();
   }
   
-  // Extract author
+  // Extract author - expanded patterns
   const authorPatterns = [
     /by\s+([A-Za-z\s.]+)(?:\s*,|\s+on|\s+\||\n)/i,
-    /author(?:\s*:|s?)\s+([A-Za-z\s.]+)(?:\s*,|\s+on|\s+\||\n)/i
+    /author(?:\s*:|s?)\s+([A-Za-z\s.]+)(?:\s*,|\s+on|\s+\||\n)/i,
+    /written by\s+([A-Za-z\s.]+)(?:\s*,|\s+on|\s+\||\n)/i,
+    /contributor:\s+([A-Za-z\s.]+)(?:\s*,|\s+on|\s+\||\n)/i
   ];
   
   for (const pattern of authorPatterns) {
