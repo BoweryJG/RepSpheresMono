@@ -20,7 +20,8 @@ import {
   Button,
   CircularProgress,
   Paper,
-  Link
+  Link,
+  IconButton
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import EventIcon from '@mui/icons-material/Event';
@@ -373,7 +374,7 @@ const MarketNewsTab = ({ isDental }) => {
       
       <Grid container spacing={3}>
         {/* Main Content */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={8} order={{ xs: 2, md: 1 }}>
           {/* Search and Filters */}
           <Box sx={{ mb: 3 }}>
             <TextField
@@ -394,21 +395,45 @@ const MarketNewsTab = ({ isDental }) => {
                       color="primary" 
                       onClick={handleSearch}
                       disabled={loading}
+                      size="small"
+                      sx={{ display: { xs: 'none', sm: 'flex' } }}
                     >
                       Search
                     </Button>
+                    <IconButton 
+                      color="primary" 
+                      onClick={handleSearch}
+                      disabled={loading}
+                      sx={{ display: { xs: 'flex', sm: 'none' } }}
+                    >
+                      <SearchIcon />
+                    </IconButton>
                   </InputAdornment>
                 )
               }}
               sx={{ mb: 2 }}
             />
             
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            <Typography variant="subtitle2" color="primary" sx={{ mb: 1, fontWeight: 'bold', display: { xs: 'block', sm: 'none' } }}>
+              Categories:
+            </Typography>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: 1, 
+                mb: 2,
+                maxHeight: { xs: '100px', sm: 'none' },
+                overflowY: { xs: 'auto', sm: 'visible' },
+                pb: 1
+              }}
+            >
               <Chip 
                 label="All Categories" 
                 color={selectedCategory === 'All' ? 'primary' : 'default'} 
                 onClick={() => handleCategoryChange('All')}
                 sx={{ mr: 1 }}
+                size="small"
               />
               {categories.map((category) => (
                 <Chip 
@@ -417,16 +442,30 @@ const MarketNewsTab = ({ isDental }) => {
                   color={selectedCategory === category.name ? 'primary' : 'default'} 
                   onClick={() => handleCategoryChange(category.name)}
                   sx={{ mr: 1 }}
+                  size="small"
                 />
               ))}
             </Box>
             
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Typography variant="subtitle2" color="primary" sx={{ mb: 1, fontWeight: 'bold', display: { xs: 'block', sm: 'none' } }}>
+              Sources:
+            </Typography>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: 1,
+                maxHeight: { xs: '100px', sm: 'none' },
+                overflowY: { xs: 'auto', sm: 'visible' },
+                pb: 1
+              }}
+            >
               <Chip 
                 label="All Sources" 
                 color={selectedSource === 'All' ? 'primary' : 'default'} 
                 onClick={() => handleSourceChange('All')}
                 sx={{ mr: 1 }}
+                size="small"
               />
               {sources.map((source) => (
                 <Chip 
@@ -435,6 +474,7 @@ const MarketNewsTab = ({ isDental }) => {
                   color={selectedSource === source.name ? 'primary' : 'default'} 
                   onClick={() => handleSourceChange(source.name)}
                   sx={{ mr: 1 }}
+                  size="small"
                 />
               ))}
             </Box>
@@ -447,8 +487,8 @@ const MarketNewsTab = ({ isDental }) => {
           {renderArticles()}
         </Grid>
         
-        {/* Sidebar */}
-        <Grid item xs={12} md={4}>
+        {/* Sidebar - Moved to top on mobile */}
+        <Grid item xs={12} md={4} order={{ xs: 1, md: 2 }}>
           {/* Trending Topics */}
           {renderTrendingTopics()}
           

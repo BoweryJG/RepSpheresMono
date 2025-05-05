@@ -245,38 +245,89 @@ const CompaniesTab = ({ isDental, COLORS }) => {
             </Tabs>
           </Box>
           <TabPanel value={detailsView} index={0}>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Company</strong></TableCell>
-                    <TableCell><strong>Founded</strong></TableCell>
-                    <TableCell><strong>Time in Market</strong></TableCell>
-                    <TableCell><strong>Headquarters</strong></TableCell>
-                    <TableCell><strong>Parent Company</strong></TableCell>
-                    <TableCell><strong>Description</strong></TableCell>
-                    <TableCell><strong>Website</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {companies.map((company) => (
-                    <TableRow key={company.name}>
-                      <TableCell>{company.name}</TableCell>
-                      <TableCell>{company.founded}</TableCell>
-                      <TableCell>{company.timeInMarket} years</TableCell>
-                      <TableCell>{company.headquarters}</TableCell>
-                      <TableCell>{company.parentCompany}</TableCell>
-                      <TableCell sx={{ maxWidth: 300 }}>{company.description}</TableCell>
-                      <TableCell>
-                        <Link href={company.website} target="_blank" rel="noopener noreferrer">
-                          Visit Website
-                        </Link>
-                      </TableCell>
+            {/* Responsive table for desktop */}
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Company</strong></TableCell>
+                      <TableCell><strong>Founded</strong></TableCell>
+                      <TableCell><strong>Time in Market</strong></TableCell>
+                      <TableCell><strong>Headquarters</strong></TableCell>
+                      <TableCell><strong>Parent Company</strong></TableCell>
+                      <TableCell><strong>Description</strong></TableCell>
+                      <TableCell><strong>Website</strong></TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {companies.map((company) => (
+                      <TableRow key={company.name}>
+                        <TableCell>{company.name}</TableCell>
+                        <TableCell>{company.founded}</TableCell>
+                        <TableCell>{company.timeInMarket} years</TableCell>
+                        <TableCell>{company.headquarters}</TableCell>
+                        <TableCell>{company.parentCompany}</TableCell>
+                        <TableCell sx={{ maxWidth: 300 }}>{company.description}</TableCell>
+                        <TableCell>
+                          <Link href={company.website} target="_blank" rel="noopener noreferrer">
+                            Visit Website
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+            
+            {/* Card-based layout for mobile */}
+            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+              {companies.map((company) => (
+                <Card key={company.name} sx={{ mb: 2, p: 2 }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    {company.name}
+                  </Typography>
+                  
+                  <Grid container spacing={1} sx={{ mb: 1 }}>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Founded:</Typography>
+                      <Typography variant="body2">{company.founded}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Time in Market:</Typography>
+                      <Typography variant="body2">{company.timeInMarket} years</Typography>
+                    </Grid>
+                  </Grid>
+                  
+                  <Grid container spacing={1} sx={{ mb: 1 }}>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Headquarters:</Typography>
+                      <Typography variant="body2">{company.headquarters}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Parent Company:</Typography>
+                      <Typography variant="body2">{company.parentCompany || 'N/A'}</Typography>
+                    </Grid>
+                  </Grid>
+                  
+                  <Typography variant="subtitle2" color="text.secondary">Description:</Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>{company.description}</Typography>
+                  
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    component="a" 
+                    href={company.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    fullWidth
+                  >
+                    Visit Website
+                  </Button>
+                </Card>
+              ))}
+            </Box>
           </TabPanel>
           <TabPanel value={detailsView} index={1}>
             {loading ? (
@@ -284,49 +335,99 @@ const CompaniesTab = ({ isDental, COLORS }) => {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Company</strong></TableCell>
-                      <TableCell><strong>Key Offerings</strong></TableCell>
-                      <TableCell><strong>Top Products</strong></TableCell>
-                      <TableCell><strong>Employee Count</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {companies.map((company) => (
-                      <TableRow key={company.name}>
-                        <TableCell>{company.name}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {company.keyOfferings.map((offering, idx) => (
-                              <Chip
-                                key={idx}
-                                label={offering}
-                                size="small"
-                                sx={{ 
-                                  backgroundColor: COLORS[idx % COLORS.length] + '40',
-                                  color: 'text.primary',
-                                  margin: '2px'
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {company.topProducts.map((product, idx) => (
-                              <li key={idx}>{product}</li>
-                            ))}
-                          </ul>
-                        </TableCell>
-                        <TableCell>{company.employeeCount}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <>
+                {/* Desktop view */}
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>Company</strong></TableCell>
+                          <TableCell><strong>Key Offerings</strong></TableCell>
+                          <TableCell><strong>Top Products</strong></TableCell>
+                          <TableCell><strong>Employee Count</strong></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {companies.map((company) => (
+                          <TableRow key={company.name}>
+                            <TableCell>{company.name}</TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                {company.keyOfferings.map((offering, idx) => (
+                                  <Chip
+                                    key={idx}
+                                    label={offering}
+                                    size="small"
+                                    sx={{ 
+                                      backgroundColor: COLORS[idx % COLORS.length] + '40',
+                                      color: 'text.primary',
+                                      margin: '2px'
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                {company.topProducts.map((product, idx) => (
+                                  <li key={idx}>{product}</li>
+                                ))}
+                              </ul>
+                            </TableCell>
+                            <TableCell>{company.employeeCount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+                
+                {/* Mobile view */}
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                  {companies.map((company) => (
+                    <Card key={company.name} sx={{ mb: 2, p: 2 }}>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        {company.name}
+                      </Typography>
+                      
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Employee Count:
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        {company.employeeCount}
+                      </Typography>
+                      
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Key Offerings:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                        {company.keyOfferings.map((offering, idx) => (
+                          <Chip
+                            key={idx}
+                            label={offering}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: COLORS[idx % COLORS.length] + '40',
+                              color: 'text.primary',
+                              margin: '2px'
+                            }}
+                          />
+                        ))}
+                      </Box>
+                      
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Top Products:
+                      </Typography>
+                      <ul style={{ margin: 0, paddingLeft: 16 }}>
+                        {company.topProducts.map((product, idx) => (
+                          <li key={idx}>{product}</li>
+                        ))}
+                      </ul>
+                    </Card>
+                  ))}
+                </Box>
+              </>
             )}
           </TabPanel>
           <TabPanel value={detailsView} index={2}>
@@ -335,56 +436,116 @@ const CompaniesTab = ({ isDental, COLORS }) => {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Company</strong></TableCell>
-                      <TableCell><strong>Market Cap</strong></TableCell>
-                      <TableCell><strong>Revenue</strong></TableCell>
-                      <TableCell><strong>Market Share</strong></TableCell>
-                      <TableCell><strong>Growth Rate</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {companies.map((company) => (
-                      <TableRow key={company.name}>
-                        <TableCell>{company.name}</TableCell>
-                        <TableCell>{company.marketCap}</TableCell>
-                        <TableCell>{company.revenue}</TableCell>
-                      <TableCell>
-                        <Box
+              <>
+                {/* Desktop view */}
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>Company</strong></TableCell>
+                          <TableCell><strong>Market Cap</strong></TableCell>
+                          <TableCell><strong>Revenue</strong></TableCell>
+                          <TableCell><strong>Market Share</strong></TableCell>
+                          <TableCell><strong>Growth Rate</strong></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {companies.map((company) => (
+                          <TableRow key={company.name}>
+                            <TableCell>{company.name}</TableCell>
+                            <TableCell>{company.marketCap}</TableCell>
+                            <TableCell>{company.revenue}</TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <Typography variant="body2">
+                                  {company.marketShare.toFixed(1)}%
+                                </Typography>
+                                <Box 
+                                  sx={{
+                                    ml: 1,
+                                    height: 10,
+                                    width: `${company.marketShare * 2}px`,
+                                    backgroundColor: COLORS[companies.indexOf(company) % COLORS.length],
+                                    borderRadius: 1
+                                  }}
+                                />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={`${company.growthRate.toFixed(1)}%`} 
+                                color={company.growthRate > 10 ? "success" : "primary"}
+                                size="small"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+                
+                {/* Mobile view */}
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                  {companies.map((company) => (
+                    <Card key={company.name} sx={{ mb: 2, p: 2 }}>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        {company.name}
+                      </Typography>
+                      
+                      <Grid container spacing={1} sx={{ mb: 1 }}>
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Market Cap:</Typography>
+                          <Typography variant="body2">{company.marketCap}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Revenue:</Typography>
+                          <Typography variant="body2">{company.revenue}</Typography>
+                        </Grid>
+                      </Grid>
+                      
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                        Market Share:
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          mb: 1
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ mr: 1 }}>
+                          {company.marketShare.toFixed(1)}%
+                        </Typography>
+                        <Box 
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center'
+                            height: 10,
+                            width: `${Math.min(company.marketShare * 3, 100)}%`,
+                            backgroundColor: COLORS[companies.indexOf(company) % COLORS.length],
+                            borderRadius: 1,
+                            flexGrow: 1
                           }}
-                        >
-                          <Typography variant="body2">
-                            {company.marketShare.toFixed(1)}%
-                          </Typography>
-                          <Box 
-                            sx={{
-                              ml: 1,
-                              height: 10,
-                              width: `${company.marketShare * 2}px`,
-                              backgroundColor: COLORS[companies.indexOf(company) % COLORS.length],
-                              borderRadius: 1
-                            }}
-                          />
-                        </Box>
-                      </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={`${company.growthRate.toFixed(1)}%`} 
-                            color={company.growthRate > 10 ? "success" : "primary"}
-                            size="small"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                        />
+                      </Box>
+                      
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                        Growth Rate:
+                      </Typography>
+                      <Chip 
+                        label={`${company.growthRate.toFixed(1)}%`} 
+                        color={company.growthRate > 10 ? "success" : "primary"}
+                        size="small"
+                      />
+                    </Card>
+                  ))}
+                </Box>
+              </>
             )}
           </TabPanel>
         </Card>
