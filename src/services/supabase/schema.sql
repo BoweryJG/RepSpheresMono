@@ -203,3 +203,137 @@ TO authenticated
 USING (true);
 
 -- Create similar policies for all tables
+
+-- Companies table
+CREATE TABLE IF NOT EXISTS companies (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  description TEXT,
+  logo_url TEXT,
+  website TEXT,
+  headquarters TEXT,
+  founded INTEGER,
+  timeInMarket INTEGER,
+  parentCompany TEXT,
+  employeeCount TEXT,
+  revenue TEXT,
+  marketCap TEXT,
+  marketShare NUMERIC(5,2),
+  growthRate NUMERIC(5,2),
+  keyOfferings TEXT[],
+  topProducts TEXT[],
+  stock_symbol TEXT,
+  stock_exchange TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- News articles table
+CREATE TABLE IF NOT EXISTS news_articles (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  summary TEXT,
+  content TEXT,
+  image_url TEXT,
+  url TEXT NOT NULL,
+  published_date TIMESTAMP WITH TIME ZONE,
+  author TEXT,
+  source TEXT,
+  category TEXT,
+  industry TEXT NOT NULL,
+  featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- News categories table
+CREATE TABLE IF NOT EXISTS news_categories (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- News sources table
+CREATE TABLE IF NOT EXISTS news_sources (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Trending topics table
+CREATE TABLE IF NOT EXISTS trending_topics (
+  id SERIAL PRIMARY KEY,
+  topic TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  popularity INTEGER,
+  trend_direction TEXT,
+  percentage_change INTEGER,
+  related_terms TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Industry events table
+CREATE TABLE IF NOT EXISTS industry_events (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE,
+  location TEXT,
+  website TEXT,
+  industry TEXT NOT NULL,
+  organizer TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS) for new tables
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trending_topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE industry_events ENABLE ROW LEVEL SECURITY;
+
+-- Create access policies for new tables
+CREATE POLICY "Allow authenticated users to read companies" 
+ON companies 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to read news articles" 
+ON news_articles 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to read news categories" 
+ON news_categories 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to read news sources" 
+ON news_sources 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to read trending topics" 
+ON trending_topics 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to read industry events" 
+ON industry_events 
+FOR SELECT 
+TO authenticated 
+USING (true);
