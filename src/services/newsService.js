@@ -6,7 +6,7 @@
  * Falls back to Brave search and Firecrawl if Supabase data is not available.
  */
 
-import { supabaseClient } from './supabase/supabaseClient';
+import { supabaseClient } from './supabase/supabaseClient.js';
 
 /**
  * Fetch news articles for the specified industry

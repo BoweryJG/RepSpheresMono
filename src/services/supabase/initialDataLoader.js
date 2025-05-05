@@ -5,9 +5,9 @@
  * using Brave search and Firecrawl. It fetches data for both dental and aesthetic industries.
  */
 
-import { fetchCompanyData } from '../searchService';
-import { fetchNewsFromExternalSources } from '../newsService';
-import { supabaseClient } from './supabaseClient';
+import { fetchCompanyData } from '../searchService.js';
+import { fetchNewsFromExternalSources } from '../newsService.js';
+import { supabaseClient } from './supabaseClient.js';
 
 // Configuration
 const COMPANY_LIMIT = 20; // Number of companies to fetch per industry
