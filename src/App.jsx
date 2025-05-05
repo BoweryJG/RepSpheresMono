@@ -1,5 +1,5 @@
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DashboardSupabase from './components/DashboardSupabase';
 import Login from './pages/auth/Login';
@@ -26,35 +26,33 @@ function App({ initializationError = false }) {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public Authentication Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
-            
-            {/* Protected Routes */}
-            <Route path="/dashboard/*" element={
-              <ProtectedWrapper>
-                <Dashboard />
-              </ProtectedWrapper>
-            } />
-            
-            {/* Supabase Dashboard Route */}
-            <Route path="/dashboard-supabase/*" element={
-              <ProtectedWrapper>
-                <DashboardSupabase />
-              </ProtectedWrapper>
-            } />
-            
-            {/* Redirect root to dashboard if authenticated, otherwise to login */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Catch all - redirect to dashboard */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Router>
+        <Routes>
+          {/* Public Authentication Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard/*" element={
+            <ProtectedWrapper>
+              <Dashboard />
+            </ProtectedWrapper>
+          } />
+          
+          {/* Supabase Dashboard Route */}
+          <Route path="/dashboard-supabase/*" element={
+            <ProtectedWrapper>
+              <DashboardSupabase />
+            </ProtectedWrapper>
+          } />
+          
+          {/* Redirect root to dashboard if authenticated, otherwise to login */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Catch all - redirect to dashboard */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </AuthProvider>
     </ThemeProvider>
   );
