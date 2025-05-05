@@ -1,4 +1,4 @@
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DashboardSupabase from './components/DashboardSupabase';
@@ -8,7 +8,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import ResetPasswordConfirm from './pages/auth/ResetPasswordConfirm';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './services/auth/AuthContext';
-import theme from './theme';
+import { ThemeProvider } from './services/theme/ThemeContext';
 
 function App({ initializationError = false }) {
   // Development mode - set to true to bypass authentication during development
@@ -23,7 +23,7 @@ function App({ initializationError = false }) {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <CssBaseline />
       <AuthProvider>
         <Routes>

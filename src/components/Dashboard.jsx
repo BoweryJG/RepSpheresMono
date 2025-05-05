@@ -17,12 +17,17 @@ import {
   FormControl,
   Divider,
   Button,
-  useMediaQuery
+  useMediaQuery,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { useAuth } from '../services/auth/AuthContext';
+import { useThemeMode } from '../services/theme/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 // Import custom UI components
 import GradientCard from './ui/GradientCard';
@@ -60,10 +65,12 @@ import {
 export default function Dashboard() {
   const theme = useTheme();
   const { signOut, user } = useAuth();
+  const { darkMode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
   const [isDental, setIsDental] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Handle logout
   const handleLogout = async () => {
@@ -139,17 +146,36 @@ export default function Dashboard() {
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header with toggle switch */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* Header with toggle switches */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        mb: 3,
+        gap: isMobile ? 2 : 0
+      }}>
         <Box>
-          <Typography variant="h3" component="h1" gutterBottom color="primary">
+          <Typography 
+            variant={isMobile ? "h4" : "h3"} 
+            component="h1" 
+            gutterBottom 
+            color="primary"
+          >
             {industryTitle} Dashboard
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             {industryDescription}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2,
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          justifyContent: isMobile ? 'flex-start' : 'flex-end',
+          width: isMobile ? '100%' : 'auto'
+        }}>
           <FormControlLabel
             control={
               <Switch 
@@ -160,11 +186,17 @@ export default function Dashboard() {
             }
             label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
           />
+          <Tooltip title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+            <IconButton onClick={toggleTheme} color="primary">
+              {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
           <GradientButton 
             variant="outlined" 
             color="primary" 
             startIcon={<LogoutIcon />}
             onClick={handleLogout}
+            size={isMobile ? "small" : "medium"}
           >
             Logout
           </GradientButton>
@@ -263,21 +295,23 @@ export default function Dashboard() {
       </Box>
       
       {/* Tabs Navigation */}
-      <Paper sx={{ mb: 4 }}>
+      <Paper sx={{ mb: 4, overflow: 'auto' }}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
-          variant="fullWidth"
+          variant={isMobile ? "scrollable" : "fullWidth"}
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           indicatorColor="primary"
           textColor="primary"
         >
-          <Tab label="PROCEDURES OVERVIEW" />
-          <Tab label="MARKET ANALYSIS" />
-          <Tab label="PATIENT DEMOGRAPHICS" />
-          <Tab label="GROWTH PREDICTIONS" />
+          <Tab label={isMobile ? "PROCEDURES" : "PROCEDURES OVERVIEW"} />
+          <Tab label={isMobile ? "MARKET" : "MARKET ANALYSIS"} />
+          <Tab label={isMobile ? "DEMOGRAPHICS" : "PATIENT DEMOGRAPHICS"} />
+          <Tab label={isMobile ? "GROWTH" : "GROWTH PREDICTIONS"} />
           <Tab label="COMPANIES" />
-          <Tab label="METROPOLITAN MARKETS" />
-          <Tab label="MARKET NEWS" />
+          <Tab label={isMobile ? "MARKETS" : "METROPOLITAN MARKETS"} />
+          <Tab label="NEWS" />
         </Tabs>
       </Paper>
       
