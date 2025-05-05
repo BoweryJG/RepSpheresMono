@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "load-data": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BoweryJG/market_insights.git"
