@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   Container, 
@@ -16,12 +16,17 @@ import {
   InputLabel,
   FormControl,
   Divider,
-  Button
+  Button,
+  useMediaQuery
 } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { useAuth } from '../services/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
+
+// Import custom UI components
+import GradientCard from './ui/GradientCard';
+import AnimatedCounter from './ui/AnimatedCounter';
 
 import ProceduresOverviewTab from './DashboardTab1';
 import MarketAnalysisTab from './DashboardTab2';
@@ -154,78 +159,86 @@ export default function Dashboard() {
             }
             label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
           />
-          <Button 
+          <GradientButton 
             variant="outlined" 
             color="primary" 
             startIcon={<LogoutIcon />}
             onClick={handleLogout}
           >
             Logout
-          </Button>
+          </GradientButton>
         </Box>
       </Box>
       
       {/* Overview Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Market Size {isDental ? "(Dental)" : "(Aesthetic)"}
-              </Typography>
-              <Typography variant="h3" color="primary">
-                ${isDental ? "60.2B" : "83.9B"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Projected for 2025
-              </Typography>
-            </CardContent>
-          </Card>
+          <GradientCard
+            title="Total Market Size"
+            subheader="Projected for 2025"
+            gradientColor={theme.palette.primary.main}
+          >
+            <AnimatedCounter
+              value={isDental ? 60.2 : 83.9}
+              prefix="$"
+              suffix="B"
+              variant="h3"
+              color="primary"
+              sx={{ my: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {isDental ? "Dental industry" : "Aesthetic industry"} market size
+            </Typography>
+          </GradientCard>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Average Growth Rate
-              </Typography>
-              <Typography variant="h3" color="primary">
-                {isDental ? "9.6%" : "13.8%"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Year-over-year
-              </Typography>
-            </CardContent>
-          </Card>
+          <GradientCard
+            title="Average Growth Rate"
+            subheader="Year-over-year"
+            gradientColor={theme.palette.success.main}
+          >
+            <AnimatedCounter
+              value={isDental ? 9.6 : 13.8}
+              suffix="%"
+              variant="h3"
+              color="success"
+              sx={{ my: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {isDental ? "4.2%" : "5.7%"} higher than previous year
+            </Typography>
+          </GradientCard>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Procedures
-              </Typography>
-              <Typography variant="h3" color="primary">
-                {allProcedures.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Across {currentCategories.length} categories
-              </Typography>
-            </CardContent>
-          </Card>
+          <GradientCard
+            title="Total Procedures"
+            subheader={`Across ${currentCategories.length} categories`}
+            gradientColor={theme.palette.info.main}
+          >
+            <AnimatedCounter
+              value={allProcedures.length}
+              variant="h3"
+              color="info"
+              sx={{ my: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {isDental ? "12" : "8"} new procedures since 2024
+            </Typography>
+          </GradientCard>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Key Patient Demographic
-              </Typography>
-              <Typography variant="h3" color="primary">
-                {isDental ? "50-64" : "35-49"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Largest age group by percentage
-              </Typography>
-            </CardContent>
-          </Card>
+          <GradientCard
+            title="Key Patient Demographic"
+            subheader="Largest age group by percentage"
+            gradientColor={theme.palette.secondary.main}
+          >
+            <Typography variant="h3" color="secondary" sx={{ fontWeight: 600, my: 1 }}>
+              {isDental ? "50-64" : "35-49"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Represents {isDental ? "32%" : "41%"} of all patients
+            </Typography>
+          </GradientCard>
         </Grid>
       </Grid>
       
