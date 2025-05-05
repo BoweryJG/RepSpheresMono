@@ -1,6 +1,9 @@
 // Service for fetching company data from Supabase with fallback to Brave search and Firecrawl
 import { supabaseClient } from './supabase/supabaseClient.js';
 
+// Brave Search API key
+const BRAVE_API_KEY = "BSA_7x47Vsptl73VPDvsvNFEjAG5s30";
+
 /**
  * Fetches company data from Supabase with fallback to Brave search and Firecrawl
  * @param {string} industry - The industry to search for companies (dental or aesthetic)
@@ -116,7 +119,8 @@ const fetchFromBraveSearch = async (query, count = 10) => {
       tool_name: 'brave_web_search',
       arguments: {
         query: query,
-        count: count
+        count: count,
+        apiKey: BRAVE_API_KEY
       }
     });
     
