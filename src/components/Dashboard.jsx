@@ -27,6 +27,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 // Import custom UI components
 import GradientCard from './ui/GradientCard';
 import AnimatedCounter from './ui/AnimatedCounter';
+import GradientButton from './ui/GradientButton';
 
 import ProceduresOverviewTab from './DashboardTab1';
 import MarketAnalysisTab from './DashboardTab2';
