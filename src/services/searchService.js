@@ -82,13 +82,16 @@ const fetchCompaniesFromExternalSources = async (industry, limit = 10) => {
 };
 
 /**
- * Fetch data from Brave Search API
+ * Fetch data from Brave Search using MCP
  * @param {string} query - Search query
  * @param {number} count - Number of results to return
  * @returns {Promise<Array>} - Array of search results
  */
 const fetchFromBraveSearch = async (query, count = 10) => {
   try {
+    console.log(`Making call to Brave Search MCP with query: "${query}"`);
+    
+    // Use the Brave Search MCP
     const response = await use_mcp_tool({
       server_name: 'brave',
       tool_name: 'brave_web_search',
@@ -98,9 +101,14 @@ const fetchFromBraveSearch = async (query, count = 10) => {
       }
     });
     
+    if (!response || !response.results) {
+      throw new Error('Brave search MCP returned no results');
+    }
+    
+    console.log(`Received ${response.results.length} results from Brave Search MCP`);
     return response.results || [];
   } catch (error) {
-    console.error('Error fetching from Brave Search:', error);
+    console.error('Error with Brave Search MCP:', error);
     return [];
   }
 };
@@ -136,6 +144,9 @@ const fetchCompanyDetailsWithFirecrawl = async (companyName, industry) => {
     // If we have a website, scrape it for information
     if (companyWebsite) {
       try {
+        console.log(`Scraping company website: ${companyWebsite} using Firecrawl MCP`);
+        
+        // Use the Firecrawl MCP
         const scrapeResult = await use_mcp_tool({
           server_name: 'github.com/mendableai/firecrawl-mcp-server',
           tool_name: 'firecrawl_scrape',
@@ -147,6 +158,7 @@ const fetchCompanyDetailsWithFirecrawl = async (companyName, industry) => {
         });
         
         if (scrapeResult && scrapeResult.markdown) {
+          console.log(`Successfully scraped content from ${companyWebsite}`);
           // Extract information from the scraped content
           return extractCompanyDetailsFromContent(scrapeResult.markdown, companyName);
         }
