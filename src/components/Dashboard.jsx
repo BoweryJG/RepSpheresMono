@@ -22,7 +22,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material';
-import { useAuth } from '../services/auth/AuthContext';
+
 import { useThemeMode } from '../services/theme/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
