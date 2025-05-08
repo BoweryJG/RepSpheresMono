@@ -5,7 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import theme from './theme';
-import { AuthProvider } from './services/auth/AuthContext';
+
 import { ensureDataExists } from './services/dataRefreshService';
 
 // Initialize data refresh service to ensure we have real data in Supabase
@@ -23,9 +23,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <AuthProvider>
+
           <App />
-        </AuthProvider>
+
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
