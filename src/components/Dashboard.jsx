@@ -64,7 +64,7 @@ import {
 
 export default function Dashboard() {
   const theme = useTheme();
-  const { signOut, user } = useAuth();
+  
   const { darkMode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
   const [isDental, setIsDental] = useState(true);
@@ -73,10 +73,7 @@ export default function Dashboard() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Handle logout
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
+  
   
   // Handle industry toggle switch
   const handleIndustryChange = () => {
@@ -191,15 +188,7 @@ export default function Dashboard() {
               {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
           </Tooltip>
-          <GradientButton 
-            variant="outlined" 
-            color="primary" 
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            size={isMobile ? "small" : "medium"}
-          >
-            Logout
-          </GradientButton>
+          
         </Box>
       </Box>
       
