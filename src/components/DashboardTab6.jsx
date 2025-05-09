@@ -16,9 +16,10 @@ import {
   PolarRadiusAxis
 } from 'recharts';
 
-import { metropolitanMarkets, marketSizeByState, proceduresByRegion, growthRatesByRegion } from '../data/metropolitanMarkets';
+// Removed direct import of static data
+// Using data passed as props from Dashboard.jsx
 
-const MetropolitanMarketsTab = ({ isDental, COLORS }) => {
+const MetropolitanMarketsTab = ({ isDental, COLORS, metropolitanMarkets }) => {
   // State variables
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('rank');

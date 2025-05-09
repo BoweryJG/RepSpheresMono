@@ -20,8 +20,52 @@ import { supabaseClient } from './supabase/supabaseClient.js';
  * @returns {Promise<Array>} - Array of news article objects
  */
 export const getNewsArticles = async (industry, options = {}) => {
-  console.log(`Fetching ${industry} news articles via Brave Search and Firecrawl...`);
-  return await fetchNewsFromExternalSources(industry, options);
+  try {
+    console.log(`Attempting to fetch ${industry} news articles from Supabase...`);
+    
+    // Try to fetch from Supabase first
+    const { limit = 10, category = null, source = null, searchTerm = null } = options;
+    
+    let query = supabaseClient
+      .from('news_articles')
+      .select('*')
+      .eq('industry', industry.toLowerCase())
+      .order('published_date', { ascending: false })
+      .limit(limit);
+    
+    // Apply filters if provided
+    if (category) {
+      query = query.eq('category', category);
+    }
+    
+    if (source) {
+      query = query.eq('source', source);
+    }
+    
+    if (searchTerm) {
+      query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    // If we have data in Supabase, use it
+    if (data && data.length > 0) {
+      console.log(`Found ${data.length} ${industry} news articles in Supabase`);
+      return data;
+    }
+    
+    // If no data in Supabase, fetch from external sources
+    console.log(`No ${industry} news articles found in Supabase, fetching from external sources...`);
+    return await fetchNewsFromExternalSources(industry, options);
+  } catch (error) {
+    console.error('Error fetching news articles from Supabase:', error);
+    console.log(`Falling back to external sources for ${industry} news articles...`);
+    return await fetchNewsFromExternalSources(industry, options);
+  }
 };
 
 /**

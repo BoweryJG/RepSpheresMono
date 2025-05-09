@@ -7,10 +7,36 @@ import { supabaseClient } from './supabase/supabaseClient.js';
  * @param {number} limit - Number of results to return
  * @returns {Promise<Array>} - Array of company data
  */
-// Bypass Supabase: always fetch via Brave Search and Firecrawl
+// First try to fetch from Supabase, then fall back to external sources
 export const fetchCompanyData = async (industry, limit = 10) => {
-  console.log(`Fetching ${industry} company data via Brave Search and Firecrawl...`);
-  return await fetchCompaniesFromExternalSources(industry, limit);
+  try {
+    console.log(`Attempting to fetch ${industry} company data from Supabase...`);
+    
+    // Try to fetch from Supabase first
+    const { data, error } = await supabaseClient
+      .from('companies')
+      .select('*')
+      .eq('industry', industry.toLowerCase())
+      .limit(limit);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // If we have data in Supabase, use it
+    if (data && data.length > 0) {
+      console.log(`Found ${data.length} ${industry} companies in Supabase`);
+      return data;
+    }
+    
+    // If no data in Supabase, fetch from external sources
+    console.log(`No ${industry} company data found in Supabase, fetching from external sources...`);
+    return await fetchCompaniesFromExternalSources(industry, limit);
+  } catch (error) {
+    console.error('Error fetching company data from Supabase:', error);
+    console.log(`Falling back to external sources for ${industry} company data...`);
+    return await fetchCompaniesFromExternalSources(industry, limit);
+  }
 };
 
 /**

@@ -45,22 +45,8 @@ import MarketNewsTab from './MarketNewsTab';
 // Colors for graphs and charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
-// Import dataset files (will be created separately)
-import { 
-  dentalProcedures, 
-  dentalCategories, 
-  dentalMarketGrowth, 
-  dentalDemographics, 
-  dentalGenderDistribution 
-} from '../data/dentalProcedures';
-
-import { 
-  aestheticProcedures, 
-  aestheticCategories, 
-  aestheticMarketGrowth, 
-  aestheticDemographics, 
-  aestheticGenderDistribution 
-} from '../data/aestheticProcedures';
+import { supabaseDataService } from '../services/supabase/supabaseDataService';
+// Removed all mock/static data imports. All data is now fetched live from Supabase.
 
 import OpenDataBadge from './ui/OpenDataBadge';
 import DashboardHeader from './ui/DashboardHeader';
@@ -95,35 +81,103 @@ export default function Dashboard() {
     setCategoryFilter(event.target.value);
   };
   
+  // State for live data
+  const [dentalProcedures, setDentalProcedures] = useState([]);
+  const [aestheticProcedures, setAestheticProcedures] = useState([]);
+  const [dentalCategories, setDentalCategories] = useState([]);
+  const [aestheticCategories, setAestheticCategories] = useState([]);
+  const [dentalMarketGrowth, setDentalMarketGrowth] = useState([]);
+  const [aestheticMarketGrowth, setAestheticMarketGrowth] = useState([]);
+  const [dentalDemographics, setDentalDemographics] = useState([]);
+  const [aestheticDemographics, setAestheticDemographics] = useState([]);
+  const [dentalGenderDistribution, setDentalGenderDistribution] = useState([]);
+  const [aestheticGenderDistribution, setAestheticGenderDistribution] = useState([]);
+  const [metropolitanMarkets, setMetropolitanMarkets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    const fetchData = async () => {
+      try {
+        const [
+          dentalProcs, 
+          aestheticProcs, 
+          dentalCats, 
+          aestheticCats,
+          dentalGrowth,
+          aestheticGrowth,
+          dentalDemo,
+          aestheticDemo,
+          dentalGender,
+          aestheticGender,
+          markets
+        ] = await Promise.all([
+          supabaseDataService.getDentalProcedures(),
+          supabaseDataService.getAestheticProcedures(),
+          supabaseDataService.getDentalCategories(),
+          supabaseDataService.getAestheticCategories(),
+          supabaseDataService.getDentalMarketGrowth(),
+          supabaseDataService.getAestheticMarketGrowth(),
+          supabaseDataService.getDentalDemographics(),
+          supabaseDataService.getAestheticDemographics(),
+          supabaseDataService.getDentalGenderDistribution(),
+          supabaseDataService.getAestheticGenderDistribution(),
+          supabaseDataService.getMetropolitanMarkets()
+        ]);
+        
+        setDentalProcedures(dentalProcs);
+        setAestheticProcedures(aestheticProcs);
+        setDentalCategories(dentalCats);
+        setAestheticCategories(aestheticCats);
+        setDentalMarketGrowth(dentalGrowth);
+        setAestheticMarketGrowth(aestheticGrowth);
+        setDentalDemographics(dentalDemo);
+        setAestheticDemographics(aestheticDemo);
+        setDentalGenderDistribution(dentalGender);
+        setAestheticGenderDistribution(aestheticGender);
+        setMetropolitanMarkets(markets);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching data from Supabase:', err);
+        setError(err.message || 'Failed to load data from Supabase.');
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   // Get current data based on selected industry
   const allProcedures = isDental ? dentalProcedures : aestheticProcedures;
   const currentCategories = isDental ? dentalCategories : aestheticCategories;
   const currentMarketGrowth = isDental ? dentalMarketGrowth : aestheticMarketGrowth;
   const currentDemographics = isDental ? dentalDemographics : aestheticDemographics;
   const currentGenderDistribution = isDental ? dentalGenderDistribution : aestheticGenderDistribution;
-  
+
   // Apply category filter if not "All"
   const currentProcedures = categoryFilter === 'All' 
     ? allProcedures 
     : allProcedures.filter(proc => proc.category === categoryFilter);
-  
+
   // Get industry title and description
   const industryTitle = isDental ? "Dental Industry" : "Aesthetic Industry";
   const industryDescription = isDental 
     ? "Comprehensive analysis of all dental procedures: growth metrics, patient demographics, and future trends." 
     : "In-depth examination of aesthetic procedures including injectables, body contouring, and advanced skin treatments.";
-  
+
   // Calculate category distribution data
   const categoryData = currentCategories.map(category => {
     const proceduresInCategory = allProcedures.filter(proc => proc.category === category);
-    const totalMarketSize = proceduresInCategory.reduce((sum, proc) => sum + proc.marketSize2025, 0);
+    const totalMarketSize = proceduresInCategory.reduce((sum, proc) => sum + (proc.marketSize2025 || 0), 0);
     return {
       name: category,
       marketSize: totalMarketSize,
       count: proceduresInCategory.length
     };
   }).sort((a, b) => b.marketSize - a.marketSize);
-  
+
   // Prepare data for treemap
   const treemapData = {
     name: 'Procedures',
@@ -140,12 +194,31 @@ export default function Dashboard() {
       };
     })
   };
-  
+
   // Calculate top procedures by growth and market size
-  const topGrowthProcedures = [...allProcedures].sort((a, b) => b.growth - a.growth).slice(0, 5);
-  const topMarketSizeProcedures = [...allProcedures].sort((a, b) => b.marketSize2025 - a.marketSize2025).slice(0, 5);
+  const topGrowthProcedures = [...allProcedures].sort((a, b) => (b.growth || 0) - (a.growth || 0)).slice(0, 5);
+  const topMarketSizeProcedures = [...allProcedures].sort((a, b) => (b.marketSize2025 || 0) - (a.marketSize2025 || 0)).slice(0, 5);
   
+  if (loading) {
     return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <Typography variant="h5" color="primary">Loading dashboard data...</Typography>
+        </Box>
+      </Container>
+    );
+  }
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <Typography variant="h5" color="error">{error}</Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
     <>
       <DashboardHeader />
       <DashboardTicker />
@@ -366,6 +439,7 @@ export default function Dashboard() {
         <MetropolitanMarketsTab 
           isDental={isDental}
           COLORS={COLORS}
+          metropolitanMarkets={metropolitanMarkets}
         />
       )}
       

@@ -32,25 +32,21 @@ class SupabaseDataService {
    */
   async getDentalProcedures() {
     try {
-      const { data, error } = await supabase
-        .from('dental_procedures')
-        .select(`
-          id,
-          name,
-          growth,
-          market_size_2025,
-          primary_age_group,
-          trends,
-          future_outlook,
-          dental_categories(name)
-        `);
-      
-      if (error) throw error;
-      
-      // Transform data to match original structure
-      return data.map(proc => ({
+      // Fetch procedures
+      const { data: procedures, error: procError } = await supabase
+        .from('public.dental_procedures')
+        .select('id, name, category_id, growth, market_size_2025, primary_age_group, trends, future_outlook, created_at, updated_at');
+      if (procError) throw procError;
+      // Fetch categories
+      const { data: categories, error: catError } = await supabase
+        .from('public.dental_categories')
+        .select('id, name');
+      if (catError) throw catError;
+      // Map category_id to category name
+      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
+      return procedures.map(proc => ({
         name: proc.name,
-        category: proc.dental_categories.name,
+        category: categoryMap[proc.category_id] || '',
         growth: proc.growth,
         marketSize2025: proc.market_size_2025,
         primaryAgeGroup: proc.primary_age_group,
@@ -68,25 +64,21 @@ class SupabaseDataService {
    */
   async getAestheticProcedures() {
     try {
-      const { data, error } = await supabase
-        .from('aesthetic_procedures')
-        .select(`
-          id,
-          name,
-          growth,
-          market_size_2025,
-          primary_age_group,
-          trends,
-          future_outlook,
-          aesthetic_categories(name)
-        `);
-      
-      if (error) throw error;
-      
-      // Transform data to match original structure
-      return data.map(proc => ({
+      // Fetch procedures
+      const { data: procedures, error: procError } = await supabase
+        .from('public.aesthetic_procedures')
+        .select('id, name, category_id, growth, market_size_2025, primary_age_group, trends, future_outlook, created_at, updated_at');
+      if (procError) throw procError;
+      // Fetch categories
+      const { data: categories, error: catError } = await supabase
+        .from('public.aesthetic_categories')
+        .select('id, name');
+      if (catError) throw catError;
+      // Map category_id to category name
+      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
+      return procedures.map(proc => ({
         name: proc.name,
-        category: proc.aesthetic_categories.name,
+        category: categoryMap[proc.category_id] || '',
         growth: proc.growth,
         marketSize2025: proc.market_size_2025,
         primaryAgeGroup: proc.primary_age_group,
@@ -105,15 +97,16 @@ class SupabaseDataService {
   async getDentalCategories() {
     try {
       const { data, error } = await supabase
-        .from('dental_categories')
-        .select('name');
+        .from('public.dental_categories')
+        .select('id, name');
       
       if (error) throw error;
       
-      // Transform to simple array of category names
+      // Transform to simple array of category names for Dashboard.jsx
+      // The getDentalProcedures method will fetch 'id, name' again for its internal mapping.
       return data.map(category => category.name);
     } catch (error) {
-      console.error('Error fetching dental categories:', error);
+      console.error('Error fetching dental categories:', error); 
       throw error;
     }
   }
@@ -124,15 +117,16 @@ class SupabaseDataService {
   async getAestheticCategories() {
     try {
       const { data, error } = await supabase
-        .from('aesthetic_categories')
-        .select('name');
+        .from('public.aesthetic_categories')
+        .select('id, name');
       
       if (error) throw error;
       
-      // Transform to simple array of category names
+      // Transform to simple array of category names for Dashboard.jsx
+      // The getAestheticProcedures method will fetch 'id, name' again for its internal mapping.
       return data.map(category => category.name);
     } catch (error) {
-      console.error('Error fetching aesthetic categories:', error);
+      console.error('Error fetching aesthetic categories:', error); 
       throw error;
     }
   }
@@ -143,7 +137,7 @@ class SupabaseDataService {
   async getDentalMarketGrowth() {
     try {
       const { data, error } = await supabase
-        .from('dental_market_growth')
+        .from('public.dental_market_growth')
         .select('*')
         .order('year', { ascending: true });
       
@@ -166,7 +160,7 @@ class SupabaseDataService {
   async getAestheticMarketGrowth() {
     try {
       const { data, error } = await supabase
-        .from('aesthetic_market_growth')
+        .from('public.aesthetic_market_growth')
         .select('*')
         .order('year', { ascending: true });
       
@@ -189,7 +183,7 @@ class SupabaseDataService {
   async getDentalDemographics() {
     try {
       const { data, error } = await supabase
-        .from('dental_demographics')
+        .from('public.dental_demographics')
         .select('*');
       
       if (error) throw error;
@@ -211,7 +205,7 @@ class SupabaseDataService {
   async getAestheticDemographics() {
     try {
       const { data, error } = await supabase
-        .from('aesthetic_demographics')
+        .from('public.aesthetic_demographics')
         .select('*');
       
       if (error) throw error;
@@ -233,7 +227,7 @@ class SupabaseDataService {
   async getDentalGenderDistribution() {
     try {
       const { data, error } = await supabase
-        .from('dental_gender_distribution')
+        .from('public.dental_gender_distribution')
         .select('*');
       
       if (error) throw error;
@@ -252,7 +246,7 @@ class SupabaseDataService {
   async getAestheticGenderDistribution() {
     try {
       const { data, error } = await supabase
-        .from('aesthetic_gender_distribution')
+        .from('public.aesthetic_gender_distribution')
         .select('*');
       
       if (error) throw error;
@@ -271,7 +265,7 @@ class SupabaseDataService {
   async getMetropolitanMarkets() {
     try {
       const { data, error } = await supabase
-        .from('metropolitan_markets')
+        .from('public.metropolitan_markets')
         .select('*')
         .order('rank', { ascending: true });
       
@@ -301,7 +295,7 @@ class SupabaseDataService {
   async getMarketSizeByState() {
     try {
       const { data, error } = await supabase
-        .from('market_size_by_state')
+        .from('public.market_size_by_state')
         .select('*')
         .order('value', { ascending: false });
       
@@ -321,7 +315,7 @@ class SupabaseDataService {
   async getGrowthRatesByRegion() {
     try {
       const { data, error } = await supabase
-        .from('growth_rates_by_region')
+        .from('public.growth_rates_by_region')
         .select('*');
       
       if (error) throw error;
@@ -341,7 +335,7 @@ class SupabaseDataService {
     try {
       // First get all regions
       const { data: regionsData, error: regionsError } = await supabase
-        .from('regions')
+        .from('public.regions')
         .select('id, name');
       
       if (regionsError) throw regionsError;
@@ -351,7 +345,7 @@ class SupabaseDataService {
       // For each region, get its procedures
       for (const region of regionsData) {
         const { data: proceduresData, error: proceduresError } = await supabase
-          .from('procedures_by_region')
+          .from('public.procedures_by_region')
           .select('name, percentage')
           .eq('region_id', region.id);
         
@@ -377,7 +371,7 @@ class SupabaseDataService {
     try {
       // First get all regions
       const { data: regionsData, error: regionsError } = await supabase
-        .from('regions')
+        .from('public.regions')
         .select('id, name');
       
       if (regionsError) throw regionsError;
@@ -388,7 +382,7 @@ class SupabaseDataService {
       for (const region of regionsData) {
         // Get age groups
         const { data: demographicsData, error: demographicsError } = await supabase
-          .from('demographics_by_region')
+          .from('public.demographics_by_region')
           .select('age_group, percentage')
           .eq('region_id', region.id);
         
@@ -396,7 +390,7 @@ class SupabaseDataService {
         
         // Get gender split
         const { data: genderData, error: genderError } = await supabase
-          .from('gender_split_by_region')
+          .from('public.gender_split_by_region')
           .select('male, female, income_level')
           .eq('region_id', region.id)
           .single();
@@ -431,7 +425,7 @@ class SupabaseDataService {
     try {
       // Get unique markets
       const { data: marketsData, error: marketsError } = await supabase
-        .from('top_providers')
+        .from('public.top_providers')
         .select('market')
         .distinct();
       
@@ -444,7 +438,7 @@ class SupabaseDataService {
         const market = marketObj.market;
         
         const { data: providersData, error: providersError } = await supabase
-          .from('top_providers')
+          .from('public.top_providers')
           .select('provider_name, provider_type, market_share')
           .eq('market', market);
         
