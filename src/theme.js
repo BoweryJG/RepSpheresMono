@@ -4,68 +4,82 @@ import { createTheme } from '@mui/material/styles';
 const createLightTheme = () => createTheme({
   palette: {
     primary: {
-      main: '#0277bd', // Deeper blue - more professional
-      light: '#58a5f0',
-      dark: '#004c8c',
-      contrastText: '#ffffff',
+      main: '#2D3142', // Deep Indigo
+      light: '#A9D6E5', // Soft Mint
+      dark: '#1B1E2F',
+      contrastText: '#F7F7FF', // Clean White
     },
     secondary: {
-      main: '#7b1fa2', // Rich purple
-      light: '#ae52d4',
-      dark: '#4a0072',
-      contrastText: '#ffffff',
+      main: '#EF8354', // Vibrant Coral
+      light: '#FFD700', // Gold Accent
+      dark: '#C75C2E',
+      contrastText: '#2D3142',
     },
     success: {
-      main: '#2e7d32',
-      light: '#4caf50',
-      dark: '#1b5e20',
+      main: '#4CAF50',
+      light: '#A9D6E5',
+      dark: '#388E3C',
+      contrastText: '#F7F7FF',
     },
     info: {
-      main: '#0288d1',
-      light: '#03a9f4',
-      dark: '#01579b',
+      main: '#A9D6E5',
+      light: '#F7F7FF',
+      dark: '#2D3142',
+      contrastText: '#2D3142',
     },
     warning: {
-      main: '#ed6c02',
-      light: '#ff9800',
-      dark: '#e65100',
+      main: '#FFD700',
+      light: '#FFF3B0',
+      dark: '#FFC300',
+      contrastText: '#2D3142',
     },
     error: {
-      main: '#d32f2f',
-      light: '#ef5350',
-      dark: '#c62828',
+      main: '#D7263D',
+      light: '#FFB3B3',
+      dark: '#8B1E2D',
+      contrastText: '#F7F7FF',
     },
     background: {
-      default: '#f8f9fa', // Lighter background for better contrast
-      paper: '#ffffff',
+      default: '#F7F7FF', // Clean White
+      paper: 'rgba(255,255,255,0.85)', // Glass effect
     },
     text: {
-      primary: '#212121',
-      secondary: '#5f6368',
+      primary: '#2D3142',
+      secondary: '#EF8354',
+      disabled: '#A9A9A9',
     },
-    divider: 'rgba(0, 0, 0, 0.12)',
+    divider: 'rgba(44, 49, 66, 0.12)',
+    gold: {
+      main: '#FFD700',
+      contrastText: '#2D3142',
+    },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
     h1: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-      letterSpacing: '-0.01562em',
+      fontSize: '4.2rem',
+      fontWeight: 900,
+      letterSpacing: '-0.04em',
+      textTransform: 'uppercase',
+      color: '#2D3142',
     },
     h2: {
-      fontSize: '2rem',
-      fontWeight: 600,
-      letterSpacing: '-0.00833em',
+      fontSize: '3rem',
+      fontWeight: 800,
+      letterSpacing: '-0.02em',
+      color: '#FFD700', // Gold accent
     },
     h3: {
-      fontSize: '1.75rem',
-      fontWeight: 600,
-      letterSpacing: '0em',
+      fontSize: '2.4rem',
+      fontWeight: 700,
+      letterSpacing: '-0.01em',
+      color: '#2D3142',
     },
     h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
+      fontSize: '2rem',
+      fontWeight: 700,
       letterSpacing: '0.00735em',
+      color: '#EF8354',
     },
     h5: {
       fontSize: '1.25rem',
@@ -100,10 +114,11 @@ const createLightTheme = () => createTheme({
       lineHeight: 1.5,
     },
     button: {
-      fontSize: '0.875rem',
-      fontWeight: 500,
-      letterSpacing: '0.02857em',
-      textTransform: 'none', // More modern approach without all-caps
+      fontSize: '1.1rem',
+      fontWeight: 700,
+      letterSpacing: '0.02em',
+      textTransform: 'uppercase',
+      color: '#2D3142',
     },
     caption: {
       fontSize: '0.75rem',
@@ -124,20 +139,22 @@ const createLightTheme = () => createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
+          background: 'linear-gradient(135deg, #F7F7FF 0%, #A9D6E5 100%)',
+          color: '#2D3142',
           scrollbarWidth: 'thin',
           '&::-webkit-scrollbar': {
             width: '8px',
             height: '8px',
           },
           '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
+            background: '#F7F7FF',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#bdbdbd',
+            background: '#FFD700',
             borderRadius: '4px',
           },
           '&::-webkit-scrollbar-thumb:hover': {
-            background: '#9e9e9e',
+            background: '#EF8354',
           },
         },
       },
@@ -145,33 +162,37 @@ const createLightTheme = () => createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '6px',
-          padding: '8px 16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+          borderRadius: '10px',
+          padding: '12px 28px',
+          fontWeight: 700,
+          fontSize: '1.1rem',
+          boxShadow: '0 2px 12px 0 rgba(239,131,84,0.08)',
+          background: 'linear-gradient(90deg, #EF8354 0%, #FFD700 100%)',
+          color: '#2D3142',
           transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
           '&:hover': {
-            boxShadow: '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)',
-            transform: 'translateY(-1px)',
+            boxShadow: '0 8px 24px 0 rgba(239,131,84,0.18)',
+            background: 'linear-gradient(90deg, #FFD700 0%, #EF8354 100%)',
+            color: '#2D3142',
+            transform: 'translateY(-2px) scale(1.03)',
           },
-        },
-        containedPrimary: {
-          background: 'linear-gradient(45deg, #0277bd 30%, #58a5f0 90%)',
-        },
-        containedSecondary: {
-          background: 'linear-gradient(45deg, #7b1fa2 30%, #ae52d4 90%)',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          boxShadow: '0 3px 10px rgba(0, 0, 0, 0.08)',
-          borderRadius: '12px',
+          boxShadow: '0 8px 32px 0 rgba(44,49,66,0.10)',
+          borderRadius: '24px',
+          background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(10px)',
+          border: '1.5px solid #A9D6E5',
           transition: 'transform 0.3s ease, box-shadow 0.3s ease',
           overflow: 'hidden',
           '&:hover': {
-            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.12)',
-            transform: 'translateY(-2px)',
+            boxShadow: '0 16px 48px 0 rgba(239,131,84,0.16)',
+            border: '2px solid #FFD700',
+            transform: 'translateY(-4px) scale(1.03)',
           },
         },
       },

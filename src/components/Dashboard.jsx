@@ -62,6 +62,10 @@ import {
   aestheticGenderDistribution 
 } from '../data/aestheticProcedures';
 
+import OpenDataBadge from './ui/OpenDataBadge';
+import DashboardHeader from './ui/DashboardHeader';
+import DashboardTicker from './ui/DashboardTicker';
+
 export default function Dashboard() {
   const theme = useTheme();
   
@@ -141,8 +145,12 @@ export default function Dashboard() {
   const topGrowthProcedures = [...allProcedures].sort((a, b) => b.growth - a.growth).slice(0, 5);
   const topMarketSizeProcedures = [...allProcedures].sort((a, b) => b.marketSize2025 - a.marketSize2025).slice(0, 5);
   
-  return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    return (
+    <>
+      <DashboardHeader />
+      <DashboardTicker />
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+
       {/* Header with toggle switches */}
       <Box sx={{ 
         display: 'flex', 
@@ -374,5 +382,6 @@ export default function Dashboard() {
         </Typography>
       </Box>
     </Container>
+    </>
   );
 }
