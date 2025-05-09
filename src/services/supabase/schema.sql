@@ -3,7 +3,7 @@
 -- Categories tables
 CREATE TABLE IF NOT EXISTS dental_categories (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE
+  category_label TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS aesthetic_categories (
@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS aesthetic_categories (
 -- Procedures tables
 CREATE TABLE IF NOT EXISTS dental_procedures (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
+  procedure_name TEXT NOT NULL,
   category_id INTEGER REFERENCES dental_categories(id),
-  growth NUMERIC(5,2) NOT NULL,
-  market_size_2025 NUMERIC(5,2) NOT NULL,
-  primary_age_group TEXT NOT NULL,
-  trends TEXT NOT NULL,
+  yearly_growth_percentage NUMERIC(5,2) NOT NULL,
+  market_size_2025_usd_millions NUMERIC(5,2) NOT NULL,
+  age_range TEXT NOT NULL,
+  recent_trends TEXT NOT NULL,
   future_outlook TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS aesthetic_procedures (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   category_id INTEGER REFERENCES aesthetic_categories(id),
-  growth NUMERIC(5,2) NOT NULL,
-  market_size_2025 NUMERIC(5,2) NOT NULL,
+  yearly_growth_percentage NUMERIC(5,2) NOT NULL,
+  market_size_2025_usd_millions NUMERIC(5,2) NOT NULL,
   primary_age_group TEXT NOT NULL,
   trends TEXT NOT NULL,
   future_outlook TEXT NOT NULL,

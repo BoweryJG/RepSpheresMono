@@ -71,7 +71,7 @@ const loadCategories = async () => {
   for (const category of dentalCategories) {
     const { error } = await supabase
       .from('dental_categories')
-      .upsert({ name: category }, { onConflict: 'name' });
+      .upsert({ category_label: category }, { onConflict: 'category_label' });
     
     if (error) throw error;
   }
@@ -97,14 +97,14 @@ const loadProcedures = async () => {
   // Get category IDs for dental procedures
   const { data: dentalCategoryData, error: dentalCategoryError } = await supabase
     .from('dental_categories')
-    .select('id, name');
+    .select('id, category_label');
   
   if (dentalCategoryError) throw dentalCategoryError;
   
   // Create a mapping of category names to IDs
   const dentalCategoryMap = {};
   dentalCategoryData.forEach(category => {
-    dentalCategoryMap[category.name] = category.id;
+    dentalCategoryMap[category.category_label] = category.id;
   });
   
   // Insert dental procedures
@@ -112,14 +112,14 @@ const loadProcedures = async () => {
     const { error } = await supabase
       .from('dental_procedures')
       .upsert({
-        name: procedure.name,
+        procedure_name: procedure.name,
         category_id: dentalCategoryMap[procedure.category],
-        growth: procedure.growth,
-        market_size_2025: procedure.marketSize2025,
-        primary_age_group: procedure.primaryAgeGroup,
-        trends: procedure.trends,
+        yearly_growth_percentage: procedure.growth,
+        market_size_2025_usd_millions: procedure.marketSize2025,
+        age_range: procedure.primaryAgeGroup,
+        recent_trends: procedure.trends,
         future_outlook: procedure.futureOutlook
-      }, { onConflict: 'name' });
+      }, { onConflict: 'procedure_name' });
     
     if (error) throw error;
   }
@@ -144,8 +144,8 @@ const loadProcedures = async () => {
       .upsert({
         name: procedure.name,
         category_id: aestheticCategoryMap[procedure.category],
-        growth: procedure.growth,
-        market_size_2025: procedure.marketSize2025,
+        yearly_growth_percentage: procedure.growth,
+        market_size_2025_usd_millions: procedure.marketSize2025,
         primary_age_group: procedure.primaryAgeGroup,
         trends: procedure.trends,
         future_outlook: procedure.futureOutlook

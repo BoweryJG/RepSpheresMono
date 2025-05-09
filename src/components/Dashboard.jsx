@@ -19,7 +19,9 @@ import {
   Button,
   useMediaQuery,
   IconButton,
-  Tooltip
+  Tooltip,
+  Chip,
+  Badge
 } from '@mui/material';
 import { useTheme } from '@mui/material';
 
@@ -28,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
 
 // Import custom UI components
 import GradientCard from './ui/GradientCard';
@@ -52,7 +55,7 @@ import OpenDataBadge from './ui/OpenDataBadge';
 import DashboardHeader from './ui/DashboardHeader';
 import DashboardTicker from './ui/DashboardTicker';
 
-export default function Dashboard() {
+export default function Dashboard({ mcpEnabled = false }) {
   const theme = useTheme();
   
   const { darkMode, toggleTheme } = useThemeMode();
@@ -270,6 +273,17 @@ export default function Dashboard() {
             </IconButton>
           </Tooltip>
           
+          {mcpEnabled && (
+            <Tooltip title="Connected to Supabase via MCP">
+              <Chip
+                icon={<CloudDoneIcon />}
+                label="MCP Connected"
+                color="success"
+                size="small"
+                variant="outlined"
+              />
+            </Tooltip>
+          )}
         </Box>
       </Box>
       
