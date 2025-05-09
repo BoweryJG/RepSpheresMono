@@ -196,13 +196,22 @@ ALTER TABLE top_providers ENABLE ROW LEVEL SECURITY;
 
 -- Create access policies
 -- Example policy for authenticated users
-CREATE POLICY "Allow authenticated users to read data" 
+CREATE POLICY "Allow public to read data" 
 ON dental_procedures 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
 -- Create similar policies for all tables
+
+-- NOTE: The contacts table/tab should remain private. If/when a contacts table is added, ensure its SELECT policy is restricted to authenticated users only:
+-- Example:
+-- CREATE POLICY "Allow authenticated users to read contacts" 
+-- ON contacts 
+-- FOR SELECT 
+-- TO authenticated 
+-- USING (true);
+
 
 -- Companies table
 CREATE TABLE IF NOT EXISTS companies (
@@ -302,38 +311,38 @@ ALTER TABLE trending_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE industry_events ENABLE ROW LEVEL SECURITY;
 
 -- Create access policies for new tables
-CREATE POLICY "Allow authenticated users to read companies" 
+CREATE POLICY "Allow public to read companies" 
 ON companies 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
-CREATE POLICY "Allow authenticated users to read news articles" 
+CREATE POLICY "Allow public to read news articles" 
 ON news_articles 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
-CREATE POLICY "Allow authenticated users to read news categories" 
+CREATE POLICY "Allow public to read news categories" 
 ON news_categories 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
-CREATE POLICY "Allow authenticated users to read news sources" 
+CREATE POLICY "Allow public to read news sources" 
 ON news_sources 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
-CREATE POLICY "Allow authenticated users to read trending topics" 
+CREATE POLICY "Allow public to read trending topics" 
 ON trending_topics 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
 
-CREATE POLICY "Allow authenticated users to read industry events" 
+CREATE POLICY "Allow public to read industry events" 
 ON industry_events 
 FOR SELECT 
-TO authenticated 
+TO anon 
 USING (true);
