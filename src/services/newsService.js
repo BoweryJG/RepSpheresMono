@@ -119,7 +119,7 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
         title: result.title || 'Untitled Article',
         summary: articleDetails.summary || result.description || '',
         content: articleDetails.content || result.description || '',
-        image_url: articleDetails.image_url || '',
+        image_url: articleDetails.image_url || result.thumbnail?.url || result.image?.url || result.image || '',
         url: result.url,
         published_date: articleDetails.published_date || new Date().toISOString(),
         author: articleDetails.author || 'Unknown',
@@ -183,7 +183,7 @@ const fetchFromBraveSearch = async (query, count = 10) => {
     title: item.title,
     url: item.url,
     summary: item.description || '',
-    image_url: item.thumbnail?.url || '',
+    image_url: item.thumbnail?.url || item.image?.url || item.image || '',
     source: item.source || '',
     published_date: item.publish_time || ''
   }));
