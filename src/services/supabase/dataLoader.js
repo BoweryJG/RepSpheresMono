@@ -73,27 +73,29 @@ export const loadAllDataToSupabase = async () => {
  * Load categories to Supabase
  */
 const loadCategories = async () => {
-  console.log('Loading categories...');
+  console.log('Loading consolidated categories...');
   
-  // Load dental categories
+  // Upsert dental categories
   for (const category of dentalCategories) {
     const { error } = await supabase
-      .from('dental_categories')
-      .upsert({ category_label: category }, { onConflict: 'category_label' });
-    
+      .from('categories')
+      .upsert(
+        { industry: 'dental', category_label: category, position: 0 },
+        { onConflict: ['industry', 'category_label'] }
+      );
     if (error) throw error;
   }
-  
-  // Load aesthetic categories
+  // Upsert aesthetic categories
   for (const category of aestheticCategories) {
     const { error } = await supabase
-      .from('aesthetic_categories')
-      .upsert({ name: category }, { onConflict: 'name' });
-    
+      .from('categories')
+      .upsert(
+        { industry: 'aesthetic', category_label: category, position: 0 },
+        { onConflict: ['industry', 'category_label'] }
+      );
     if (error) throw error;
   }
-  
-  console.log('Categories loaded successfully!');
+  console.log('Consolidated categories loaded successfully!');
 };
 
 /**
@@ -104,8 +106,9 @@ const loadProcedures = async () => {
   
   // Get category IDs for dental procedures
   const { data: dentalCategoryData, error: dentalCategoryError } = await supabase
-    .from('dental_categories')
-    .select('id, category_label');
+    .from('categories')
+    .select('id, category_label')
+    .eq('industry', 'dental');
   
   if (dentalCategoryError) throw dentalCategoryError;
   
@@ -134,15 +137,16 @@ const loadProcedures = async () => {
   
   // Get category IDs for aesthetic procedures
   const { data: aestheticCategoryData, error: aestheticCategoryError } = await supabase
-    .from('aesthetic_categories')
-    .select('id, name');
+    .from('categories')
+    .select('id, category_label')
+    .eq('industry', 'aesthetic');
   
   if (aestheticCategoryError) throw aestheticCategoryError;
   
   // Create a mapping of category names to IDs
   const aestheticCategoryMap = {};
   aestheticCategoryData.forEach(category => {
-    aestheticCategoryMap[category.name] = category.id;
+    aestheticCategoryMap[category.category_label] = category.id;
   });
   
   // Insert aesthetic procedures

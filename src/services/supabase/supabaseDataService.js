@@ -89,8 +89,10 @@ class SupabaseDataService {
       if (procError) throw procError;
       // Fetch categories
       const { data: categories, error: catError } = await supabase
-        .from('dental_categories')
-        .select('*');
+        .from('categories')
+        .select('category_label')
+        .eq('industry', 'dental')
+        .order('position', { ascending: true });
       if (catError) throw catError;
       // Map category_id to category name
       const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
@@ -122,11 +124,13 @@ class SupabaseDataService {
       if (procError) throw procError;
       // Fetch categories
       const { data: categories, error: catError } = await supabase
-        .from('aesthetic_categories')
-        .select('*');
+        .from('categories')
+        .select('category_label')
+        .eq('industry', 'aesthetic')
+        .order('position', { ascending: true });
       if (catError) throw catError;
       // Map category_id to category name
-      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
+      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
         name: proc.name,
         category: categoryMap[proc.category_id] || '',
@@ -147,14 +151,14 @@ class SupabaseDataService {
    */
   async getDentalCategories() {
     try {
-      // Direct Supabase connection
       const { data, error } = await supabase
-        .from('dental_categories')
-        .select('*');
+        .from('categories')
+        .select('category_label')
+        .eq('industry', 'dental')
+        .order('position', { ascending: true });
       
       if (error) throw error;
       
-      // Transform to simple array of category names for Dashboard.jsx
       return data.map(category => category.category_label);
     } catch (error) {
       console.error('Error fetching dental categories:', error); 
@@ -167,15 +171,15 @@ class SupabaseDataService {
    */
   async getAestheticCategories() {
     try {
-      // Direct Supabase connection
       const { data, error } = await supabase
-        .from('aesthetic_categories')
-        .select('*');
+        .from('categories')
+        .select('category_label')
+        .eq('industry', 'aesthetic')
+        .order('position', { ascending: true });
       
       if (error) throw error;
       
-      // Transform to simple array of category names for Dashboard.jsx
-      return data.map(category => category.name);
+      return data.map(category => category.category_label);
     } catch (error) {
       console.error('Error fetching aesthetic categories:', error); 
       throw error;
@@ -195,7 +199,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform to match original structure
       return data.map(growth => ({
         year: growth.year,
         size: growth.size
@@ -219,7 +222,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform to match original structure
       return data.map(growth => ({
         year: growth.year,
         size: growth.size
@@ -242,7 +244,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform to match original structure
       return data.map(demo => ({
         ageGroup: demo.age_group,
         percentage: demo.percentage
@@ -265,7 +266,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform to match original structure
       return data.map(demo => ({
         ageGroup: demo.age_group,
         percentage: demo.percentage
@@ -288,7 +288,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Return as is since structure matches
       return data;
     } catch (error) {
       console.error('Error fetching dental gender distribution:', error);
@@ -308,7 +307,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Return as is since structure matches
       return data;
     } catch (error) {
       console.error('Error fetching aesthetic gender distribution:', error);
@@ -329,7 +327,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform to match original structure
       return data.map(market => ({
         rank: market.rank,
         metro: market.metro,
@@ -360,7 +357,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Return as is since structure matches
       return data;
     } catch (error) {
       console.error('Error fetching market size by state:', error);
@@ -380,7 +376,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Return as is since structure matches
       return data;
     } catch (error) {
       console.error('Error fetching growth rates by region:', error);
@@ -536,7 +531,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform the data to match expected format and parse JSON strings
       return data.map(company => ({
         ...company,
         marketShare: parseFloat(company.marketShare) || 0,
@@ -563,7 +557,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform the data to match expected format and parse JSON strings
       return data.map(company => ({
         ...company,
         marketShare: parseFloat(company.marketShare) || 0,
@@ -591,7 +584,6 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      // Transform the data to match expected format and parse JSON strings
       return data.map(company => ({
         ...company,
         marketShare: parseFloat(company.marketShare) || 0,
@@ -616,7 +608,6 @@ class SupabaseDataService {
     if (!jsonString) return defaultValue;
     
     try {
-      // Handle both string JSON and already parsed objects
       if (typeof jsonString === 'string') {
         return JSON.parse(jsonString);
       } else if (Array.isArray(jsonString)) {
