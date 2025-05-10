@@ -9,7 +9,7 @@ import { supabaseDataService } from './services/supabase/supabaseDataService';
 import { Alert, Snackbar, Box, Button, CircularProgress } from '@mui/material';
 import apiService from './services/apiService';
 import { supabase } from './services/supabase/supabaseClient';
-import { isAuthenticated, getCurrentUser, signOut } from './services/supabase/supabaseAuth';
+import { isAuthenticated, getCurrentUser, signOut } from './services/demoAuth';
 
 // Create a separate component for the theme switcher buttons
 const ThemeSwitcher = () => {

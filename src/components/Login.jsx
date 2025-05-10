@@ -6,7 +6,8 @@ import {
   signInWithFacebook, 
   handleOAuthRedirect,
   isAuthenticated 
-} from '../services/supabase/supabaseAuth';
+} from '../services/demoAuth';
+import DemoLoginButton from './DemoLoginButton';
 import { 
   Box, 
   Container, 
@@ -273,7 +274,7 @@ const Login = ({ onLoginSuccess }) => {
           )}
 
           {/* Authentication options */}
-          <Box sx={{ width: '100%', mb: 2 }}>
+          <Box sx={{ width: '100%', mb: 1 }}>
             <Button
               fullWidth
               variant="outlined"
