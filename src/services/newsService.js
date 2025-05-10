@@ -119,7 +119,7 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
         title: result.title || 'Untitled Article',
         summary: articleDetails.summary || result.description || '',
         content: articleDetails.content || result.description || '',
-        image_url: articleDetails.image_url || result.thumbnail?.url || result.image?.url || result.image || '',
+        image_url: articleDetails.image_url || result.image_url || '',
         url: result.url,
         published_date: articleDetails.published_date || new Date().toISOString(),
         author: articleDetails.author || 'Unknown',
