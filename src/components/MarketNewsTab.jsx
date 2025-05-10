@@ -87,8 +87,21 @@ const MarketNewsTab = ({ isDental }) => {
         const sortedFeatured = featuredArticlesData.sort((a,b) => new Date(b.published_date) - new Date(a.published_date));
         setArticles(sortedArticles);
         setFeaturedArticles(sortedFeatured);
-        setCategories(categoriesData);
-        setSources(sourcesData);
+        
+        // Fallback to derive categories from articles if none in DB
+        const cats = categoriesData && categoriesData.length > 0
+          ? categoriesData
+          : Array.from(new Set(articlesData.map(a => a.category)))
+              .map(name => ({ id: name, category: name }));
+        setCategories(cats);
+        
+        // Fallback to derive sources from articles if none in DB
+        const srcs = sourcesData && sourcesData.length > 0
+          ? sourcesData
+          : Array.from(new Set(articlesData.map(a => a.source)))
+              .map(name => ({ id: name, source: name }));
+        setSources(srcs);
+        
         setTrendingTopics(trendingTopicsData);
         setUpcomingEvents(upcomingEventsData);
       } catch (error) {
@@ -441,11 +454,11 @@ const MarketNewsTab = ({ isDental }) => {
                 size="small"
               />
               {categories.map((category) => (
-                <Chip 
-                  key={category.id} 
-                  label={category.name} 
-                  color={selectedCategory === category.name ? 'primary' : 'default'} 
-                  onClick={() => handleCategoryChange(category.name)}
+                <Chip
+                  key={category.id}
+                  label={category.category || category.name}
+                  color={selectedCategory === (category.category || category.name) ? 'primary' : 'default'}
+                  onClick={() => handleCategoryChange(category.category || category.name)}
                   sx={{ mr: 1 }}
                   size="small"
                 />
@@ -473,11 +486,11 @@ const MarketNewsTab = ({ isDental }) => {
                 size="small"
               />
               {sources.map((source) => (
-                <Chip 
-                  key={source.id} 
-                  label={source.name} 
-                  color={selectedSource === source.name ? 'primary' : 'default'} 
-                  onClick={() => handleSourceChange(source.name)}
+                <Chip
+                  key={source.id}
+                  label={source.source || source.name}
+                  color={selectedSource === (source.source || source.name) ? 'primary' : 'default'}
+                  onClick={() => handleSourceChange(source.source || source.name)}
                   sx={{ mr: 1 }}
                   size="small"
                 />
