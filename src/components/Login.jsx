@@ -13,15 +13,17 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Paper, 
   Alert, 
   CircularProgress,
   Snackbar,
   Divider,
   Tab,
   Tabs,
-  Link
+  Link,
+  alpha
 } from '@mui/material';
+import SimpleCard from './ui/SimpleCard';
+import GradientButton from './ui/GradientButton';
 import { useTheme } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -196,194 +198,303 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Paper 
-        elevation={3} 
-        sx={{ 
-          mt: 8, 
-          p: 4, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
-          borderRadius: 2,
-          backgroundColor: theme.palette.background.paper,
-        }}
-      >
-        <Box 
-          sx={{
-            width: 50,
-            height: 50,
-            borderRadius: '50%',
-            backgroundColor: theme.palette.primary.main,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            mb: 2
-          }}
-        >
-          <LockOutlinedIcon sx={{ color: 'white' }} />
-        </Box>
-        
-        <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
-          Market Insights Dashboard
-        </Typography>
-
-        {error && (
-          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Authentication options */}
-        <Box sx={{ width: '100%', mb: 2 }}>
-          <Button
-            fullWidth
-            variant="outlined"
-            startIcon={<GoogleIcon />}
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            sx={{ mb: 1, py: 1 }}
+    <Container component="main" maxWidth="xs" sx={{ 
+      pt: 8,
+      pb: 4,
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    }}>
+      <SimpleCard sx={{ px: 4, py: 3, width: '100%' }}>
+          <Box 
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              width: '100%'
+            }}
           >
-            Sign in with Google
-          </Button>
-          
-          <Button
-            fullWidth
-            variant="outlined"
-            startIcon={<FacebookIcon />}
-            onClick={handleFacebookSignIn}
-            disabled={loading}
-            sx={{ mb: 2, py: 1 }}
-          >
-            Sign in with Facebook
-          </Button>
-          
-          <Divider sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              OR
-            </Typography>
-          </Divider>
-        </Box>
-
-        {/* Tab navigation between Sign In and Sign Up */}
-        <Box sx={{ width: '100%', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
-            variant="fullWidth"
-          >
-            <Tab label="Sign In" id="auth-tab-0" aria-controls="auth-tabpanel-0" />
-            <Tab label="Sign Up" id="auth-tab-1" aria-controls="auth-tabpanel-1" />
-          </Tabs>
-        </Box>
-
-        {/* Sign In Panel */}
-        <TabPanel value={tabValue} index={0}>
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.2 }}
-              disabled={loading}
+            <Box 
+              sx={{
+                mb: 3.5,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
             >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-          </Box>
-        </TabPanel>
+              {/* RepSpheres Logo with Market Insights */}
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 500,
+                    fontSize: '1.7rem',
+                    background: 'linear-gradient(90deg, #47e5bc 10%, #00b0ff 90%)',
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    textShadow: '0 0 20px rgba(0, 176, 255, 0.5)',
+                    letterSpacing: '0.5px',
+                    mb: 1
+                  }}
+                >
+                  Rep<Box component="span" sx={{ fontWeight: 700 }}>Spheres</Box>
+                </Typography>
+              </Box>
+              <Typography 
+                variant="h6"
+                sx={{
+                  textTransform: 'uppercase',
+                  letterSpacing: '3px',
+                  fontSize: '0.9rem',
+                  background: 'linear-gradient(90deg, #ffffff 20%, #a0e4f1 80%)',
+                  backgroundClip: 'text',
+                  textFillColor: 'transparent',
+                  opacity: 0.85
+                }}
+              >
+                MARKET INSIGHTS
+              </Typography>
+            </Box>
         
-        {/* Sign Up Panel */}
-        <TabPanel value={tabValue} index={1}>
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="signup-email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="signup-password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              helperText="Password must be at least 6 characters"
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              id="confirm-password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
-            />
+          <Typography component="h1" variant="h5" sx={{ mb: 2, fontWeight: 400, color: '#a0e4f1' }}>
+            Portal Access
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Authentication options */}
+          <Box sx={{ width: '100%', mb: 2 }}>
             <Button
-              type="submit"
               fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.2 }}
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              onClick={handleGoogleSignIn}
               disabled={loading}
+              sx={{ 
+                mb: 1, 
+                py: 1.2,
+                textTransform: 'none',
+                borderColor: '#dadce0',
+                color: '#3c4043',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: '#f6f9fe',
+                  borderColor: '#d2e3fc'
+                }
+              }}
             >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Create Account'
-              )}
+              Sign in with Google
             </Button>
+            
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<FacebookIcon />}
+              onClick={handleFacebookSignIn}
+              disabled={loading}
+              sx={{ 
+                mb: 2, 
+                py: 1.2,
+                textTransform: 'none',
+                borderColor: '#dadce0',
+                color: '#3c4043',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: '#f6f9fe',
+                  borderColor: '#d2e3fc'
+                }
+              }}
+            >
+              Sign in with Facebook
+            </Button>
+          
+            <Divider sx={{ 
+              mb: 2,
+              mt: 1,
+              '&::before, &::after': {
+                borderColor: '#dadce0',
+              }
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#5f6368',
+                  px: 1
+                }}
+              >
+                OR
+              </Typography>
+            </Divider>
+        </Box>
+
+          {/* Tab navigation between Sign In and Sign Up */}
+          <Box sx={{ 
+            width: '100%', 
+            borderBottom: 1, 
+            borderColor: '#dadce0',
+            mb: 1
+          }}>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleTabChange} 
+              variant="fullWidth"
+              sx={{
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '0.875rem'
+                }
+              }}
+            >
+              <Tab label="Sign in" id="auth-tab-0" aria-controls="auth-tabpanel-0" />
+              <Tab label="Create account" id="auth-tab-1" aria-controls="auth-tabpanel-1" />
+            </Tabs>
           </Box>
-        </TabPanel>
+
+          {/* Sign In Panel */}
+          <TabPanel value={tabValue} index={0}>
+            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                variant="outlined"
+                size="small"
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                variant="outlined"
+                size="small"
+              />
+              <GradientButton
+                type="submit"
+                fullWidth
+                startColor="#47e5bc"
+                endColor="#00b0ff"
+                sx={{ 
+                  mt: 3, 
+                  mb: 2
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Access Portal'
+                )}
+              </GradientButton>
+            </Box>
+          </TabPanel>
         
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-          By signing in, you agree to our Terms of Service and Privacy Policy
-        </Typography>
-      </Paper>
+          {/* Sign Up Panel */}
+          <TabPanel value={tabValue} index={1}>
+            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="signup-email"
+                label="Email"
+                name="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                variant="outlined"
+                size="small"
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="signup-password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                helperText="Use 6 or more characters"
+                variant="outlined"
+                size="small"
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="confirmPassword"
+                label="Confirm"
+                type="password"
+                id="confirm-password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                variant="outlined"
+                size="small"
+              />
+              <GradientButton
+                type="submit"
+                fullWidth
+                startColor="#00b0ff"
+                endColor="#47e5bc"
+                sx={{ 
+                  mt: 3, 
+                  mb: 2
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Create Portal Access'
+                )}
+              </GradientButton>
+            </Box>
+          </TabPanel>
+        
+          <Typography 
+            variant="body2" 
+            align="center" 
+            sx={{ 
+              mt: 2,
+              fontSize: '0.75rem',
+              color: 'rgba(160, 228, 241, 0.7)'
+            }}
+          >
+            By accessing the portal, you agree to our Terms of Service and Privacy Policy
+          </Typography>
+        </Box>
+      </SimpleCard>
       
       <Snackbar
         open={snackbarOpen}
