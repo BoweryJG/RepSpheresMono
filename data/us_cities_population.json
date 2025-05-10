@@ -1,8 +1,0 @@
-[
-  {"city": "New York", "state": "NY", "population": 8467513},
-  {"city": "Los Angeles", "state": "CA", "population": 3898747},
-  {"city": "Chicago", "state": "IL", "population": 2746388},
-  {"city": "Houston", "state": "TX", "population": 2304580},
-  {"city": "Phoenix", "state": "AZ", "population": 1660272}
-  // ... (add more cities as needed)
-]

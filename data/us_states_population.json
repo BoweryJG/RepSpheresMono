@@ -1,8 +1,0 @@
-[
-  {"state": "CA", "state_name": "California", "population": 39144818},
-  {"state": "TX", "state_name": "Texas", "population": 29730311},
-  {"state": "FL", "state_name": "Florida", "population": 21944577},
-  {"state": "NY", "state_name": "New York", "population": 19299981},
-  {"state": "PA", "state_name": "Pennsylvania", "population": 12804123}
-  // ... (add more states as needed)
-]
