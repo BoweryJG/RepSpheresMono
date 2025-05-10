@@ -1,5 +1,6 @@
 import { fetchAndStoreNewsData } from './dataFetchers/newsDataFetcher';
 import { fetchAndStoreCompanyData } from './dataFetchers/companyDataFetcher';
+import { loadAllDataToSupabase } from './supabase/dataLoader';
 
 /**
  * Refresh all data from external sources
@@ -56,8 +57,11 @@ export const ensureDataExists = async () => {
       console.log('Some data is missing, refreshing...');
       await refreshAllData();
     } else {
-      console.log('All data exists in Supabase');
+      console.log('News and companies exist in Supabase');
     }
+    // Ensure full dataset (procedures, categories, etc.) is loaded
+    console.log('Loading full market dataset to Supabase...');
+    await loadAllDataToSupabase();
     
     return { success: true };
   } catch (error) {

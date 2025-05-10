@@ -55,6 +55,10 @@ import OpenDataBadge from './ui/OpenDataBadge';
 import DashboardHeader from './ui/DashboardHeader';
 import DashboardTicker from './ui/DashboardTicker';
 
+// Static data fallback
+import { dentalProcedures as staticDentalProcedures, dentalCategories as staticDentalCategories } from '../data/dentalProcedures';
+import { aestheticProcedures as staticAestheticProcedures, aestheticCategories as staticAestheticCategories } from '../data/aestheticProcedures';
+
 export default function Dashboard({ mcpEnabled = false, backendConnected = false }) {
   const theme = useTheme();
   
@@ -130,10 +134,10 @@ export default function Dashboard({ mcpEnabled = false, backendConnected = false
           supabaseDataService.getMetropolitanMarkets()
         ]);
         
-        setDentalProcedures(dentalProcs);
-        setAestheticProcedures(aestheticProcs);
-        setDentalCategories(dentalCats);
-        setAestheticCategories(aestheticCats);
+        setDentalProcedures(dentalProcs.length ? dentalProcs : staticDentalProcedures);
+        setAestheticProcedures(aestheticProcs.length ? aestheticProcs : staticAestheticProcedures);
+        setDentalCategories(dentalCats.length ? dentalCats : staticDentalCategories);
+        setAestheticCategories(aestheticCats.length ? aestheticCats : staticAestheticCategories);
         setDentalMarketGrowth(dentalGrowth);
         setAestheticMarketGrowth(aestheticGrowth);
         setDentalDemographics(dentalDemo);

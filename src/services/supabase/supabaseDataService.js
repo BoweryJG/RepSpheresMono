@@ -532,7 +532,7 @@ class SupabaseDataService {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('industry', 'Dental');
+        .eq('industry', 'dental');
       
       if (error) throw error;
       
@@ -559,7 +559,7 @@ class SupabaseDataService {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('industry', 'Aesthetic');
+        .eq('industry', 'aesthetic');
       
       if (error) throw error;
       

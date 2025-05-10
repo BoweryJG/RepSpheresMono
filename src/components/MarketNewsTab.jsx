@@ -80,6 +80,8 @@ const MarketNewsTab = ({ isDental }) => {
           getUpcomingEvents(industry)
         ]);
         
+        console.log('Fetched news articles:', articlesData.map(a => ({ id: a.id, image_url: a.image_url })));
+        
         setArticles(articlesData);
         setFeaturedArticles(featuredArticlesData);
         setCategories(categoriesData);
