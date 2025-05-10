@@ -82,8 +82,11 @@ const MarketNewsTab = ({ isDental }) => {
         
         console.log('Fetched news articles:', articlesData.map(a => ({ id: a.id, image_url: a.image_url })));
         
-        setArticles(articlesData);
-        setFeaturedArticles(featuredArticlesData);
+        // Sort by newest date
+        const sortedArticles = articlesData.sort((a,b) => new Date(b.published_date) - new Date(a.published_date));
+        const sortedFeatured = featuredArticlesData.sort((a,b) => new Date(b.published_date) - new Date(a.published_date));
+        setArticles(sortedArticles);
+        setFeaturedArticles(sortedFeatured);
         setCategories(categoriesData);
         setSources(sourcesData);
         setTrendingTopics(trendingTopicsData);
@@ -204,7 +207,7 @@ const MarketNewsTab = ({ isDental }) => {
                   <CardMedia
                     component="img"
                     height="180"
-                    image={article.image_url || 'https://via.placeholder.com/300x180?text=No+Image'}
+                    src={article.image_url || 'https://via.placeholder.com/300x180?text=No+Image'}
                     alt={article.title}
                   />
                   <CardContent sx={{ flexGrow: 1 }}>
@@ -323,7 +326,7 @@ const MarketNewsTab = ({ isDental }) => {
               <CardMedia
                 component="img"
                 sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
-                image={article.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}
+                src={article.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}
                 alt={article.title}
               />
               <CardContent sx={{ flex: '1 0 auto' }}>
