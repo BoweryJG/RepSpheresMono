@@ -1,13 +1,12 @@
 import { supabase } from './supabaseClient';
 import { loadAllDataToSupabase, checkDataLoaded } from './dataLoader';
-import { mcpSupabaseService } from './mcpSupabaseService';
 
 /**
  * Class to fetch market insight data from Supabase
  */
 class SupabaseDataService {
   constructor() {
-    this.mcpEnabled = false;
+    // No MCP flag needed
   }
   
   /**
@@ -17,7 +16,7 @@ class SupabaseDataService {
     try {
       console.log('Initializing Supabase Data Service...');
       
-      // First try to check if data is loaded
+      // Try to check if data is loaded
       try {
         const isDataLoaded = await checkDataLoaded();
         
@@ -38,18 +37,7 @@ class SupabaseDataService {
         }
       } catch (dataError) {
         console.error('Error checking/loading data:', dataError);
-        console.log('Will try to proceed with MCP or direct connection anyway.');
-      }
-      
-      // Check if MCP is initialized
-      try {
-        const mcpResult = await mcpSupabaseService.initialize();
-        if (mcpResult.success) {
-          this.mcpEnabled = true;
-          console.log('Using MCP for Supabase data service');
-        }
-      } catch (mcpError) {
-        console.log('MCP not available, using direct Supabase connection');
+        console.log('Will proceed with direct connection anyway.');
       }
       
       return { success: true };
@@ -93,45 +81,7 @@ class SupabaseDataService {
    */
   async getDentalProcedures() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          // Get procedures and categories via MCP
-          const proceduresResult = await mcpSupabaseService.executeSql(
-            projectId, 
-            `SELECT * FROM dental_procedures`
-          );
-          
-          const categoriesResult = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM dental_categories`
-          );
-          
-          if (proceduresResult.data && categoriesResult.data) {
-            const procedures = proceduresResult.data;
-            const categories = categoriesResult.data;
-            
-            // Map category_id to category name
-            const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
-            
-            return procedures.map(proc => ({
-              name: proc.procedure_name,
-              category: categoryMap[proc.category_id] || '',
-              growth: proc.yearly_growth_percentage,
-              marketSize2025: proc.market_size_2025_usd_millions,
-              primaryAgeGroup: proc.age_range,
-              trends: proc.recent_trends,
-              futureOutlook: proc.future_outlook
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for dental procedures, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       // Fetch procedures
       const { data: procedures, error: procError } = await supabase
         .from('dental_procedures')
@@ -164,45 +114,7 @@ class SupabaseDataService {
    */
   async getAestheticProcedures() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          // Get procedures and categories via MCP
-          const proceduresResult = await mcpSupabaseService.executeSql(
-            projectId, 
-            `SELECT * FROM aesthetic_procedures`
-          );
-          
-          const categoriesResult = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM aesthetic_categories`
-          );
-          
-          if (proceduresResult.data && categoriesResult.data) {
-            const procedures = proceduresResult.data;
-            const categories = categoriesResult.data;
-            
-            // Map category_id to category name
-            const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
-            
-            return procedures.map(proc => ({
-              name: proc.name,
-              category: categoryMap[proc.category_id] || '',
-              growth: proc.yearly_growth_percentage,
-              marketSize2025: proc.market_size_2025_usd_millions,
-              primaryAgeGroup: proc.primary_age_group,
-              trends: proc.trends,
-              futureOutlook: proc.future_outlook
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for aesthetic procedures, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       // Fetch procedures
       const { data: procedures, error: procError } = await supabase
         .from('aesthetic_procedures')
@@ -235,25 +147,7 @@ class SupabaseDataService {
    */
   async getDentalCategories() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM dental_categories`
-          );
-          
-          if (result.data) {
-            return result.data.map(category => category.category_label);
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for dental categories, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('dental_categories')
         .select('*');
@@ -273,25 +167,7 @@ class SupabaseDataService {
    */
   async getAestheticCategories() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM aesthetic_categories`
-          );
-          
-          if (result.data) {
-            return result.data.map(category => category.name);
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for aesthetic categories, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('aesthetic_categories')
         .select('*');
@@ -311,28 +187,7 @@ class SupabaseDataService {
    */
   async getDentalMarketGrowth() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM dental_market_growth ORDER BY year ASC`
-          );
-          
-          if (result.data) {
-            return result.data.map(growth => ({
-              year: growth.year,
-              size: growth.size
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for dental market growth, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('dental_market_growth')
         .select('*')
@@ -356,28 +211,7 @@ class SupabaseDataService {
    */
   async getAestheticMarketGrowth() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM aesthetic_market_growth ORDER BY year ASC`
-          );
-          
-          if (result.data) {
-            return result.data.map(growth => ({
-              year: growth.year,
-              size: growth.size
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for aesthetic market growth, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('aesthetic_market_growth')
         .select('*')
@@ -401,28 +235,7 @@ class SupabaseDataService {
    */
   async getDentalDemographics() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM dental_demographics`
-          );
-          
-          if (result.data) {
-            return result.data.map(demo => ({
-              ageGroup: demo.age_group,
-              percentage: demo.percentage
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for dental demographics, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('dental_demographics')
         .select('*');
@@ -445,28 +258,7 @@ class SupabaseDataService {
    */
   async getAestheticDemographics() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM aesthetic_demographics`
-          );
-          
-          if (result.data) {
-            return result.data.map(demo => ({
-              ageGroup: demo.age_group,
-              percentage: demo.percentage
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for aesthetic demographics, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('aesthetic_demographics')
         .select('*');
@@ -489,25 +281,7 @@ class SupabaseDataService {
    */
   async getDentalGenderDistribution() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM dental_gender_distribution`
-          );
-          
-          if (result.data) {
-            return result.data;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for dental gender distribution, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('dental_gender_distribution')
         .select('*');
@@ -527,25 +301,7 @@ class SupabaseDataService {
    */
   async getAestheticGenderDistribution() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM aesthetic_gender_distribution`
-          );
-          
-          if (result.data) {
-            return result.data;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for aesthetic gender distribution, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('aesthetic_gender_distribution')
         .select('*');
@@ -565,35 +321,7 @@ class SupabaseDataService {
    */
   async getMetropolitanMarkets() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM metropolitan_markets ORDER BY rank ASC`
-          );
-          
-          if (result.data) {
-            return result.data.map(market => ({
-              rank: market.rank,
-              metro: market.metro,
-              marketSize2023: market.market_size_2023,
-              marketSize2030: market.market_size_2030,
-              growthRate: market.growth_rate,
-              keyProcedures: market.key_procedures,
-              providerDensity: market.provider_density,
-              insuranceCoverage: market.insurance_coverage,
-              disposableIncome: market.disposable_income
-            }));
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for metropolitan markets, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('metropolitan_markets')
         .select('*')
@@ -624,25 +352,7 @@ class SupabaseDataService {
    */
   async getMarketSizeByState() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM market_size_by_state ORDER BY value DESC`
-          );
-          
-          if (result.data) {
-            return result.data;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for market size by state, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('market_size_by_state')
         .select('*')
@@ -663,25 +373,7 @@ class SupabaseDataService {
    */
   async getGrowthRatesByRegion() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          const result = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM growth_rates_by_region`
-          );
-          
-          if (result.data) {
-            return result.data;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for growth rates by region, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       const { data, error } = await supabase
         .from('growth_rates_by_region')
         .select('*');
@@ -701,45 +393,7 @@ class SupabaseDataService {
    */
   async getProceduresByRegion() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          // Get regions
-          const regionsResult = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM regions`
-          );
-          
-          if (regionsResult.data) {
-            const regionsData = regionsResult.data;
-            const result = [];
-            
-            // For each region, get procedures
-            for (const region of regionsData) {
-              const proceduresResult = await mcpSupabaseService.executeSql(
-                projectId,
-                `SELECT name, percentage FROM procedures_by_region 
-                 WHERE region_id = ${region.id}`
-              );
-              
-              if (proceduresResult.data) {
-                result.push({
-                  region: region.name,
-                  procedures: proceduresResult.data
-                });
-              }
-            }
-            
-            return result;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for procedures by region, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       // First get all regions
       const { data: regionsData, error: regionsError } = await supabase
         .from('regions')
@@ -776,59 +430,7 @@ class SupabaseDataService {
    */
   async getDemographicsByRegion() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          // Get regions
-          const regionsResult = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT * FROM regions`
-          );
-          
-          if (regionsResult.data) {
-            const regionsData = regionsResult.data;
-            const result = [];
-            
-            // For each region, get demographics and gender split
-            for (const region of regionsData) {
-              const demographicsResult = await mcpSupabaseService.executeSql(
-                projectId,
-                `SELECT age_group, percentage FROM demographics_by_region 
-                 WHERE region_id = ${region.id}`
-              );
-              
-              const genderResult = await mcpSupabaseService.executeSql(
-                projectId,
-                `SELECT male, female, income_level FROM gender_split_by_region 
-                 WHERE region_id = ${region.id}`
-              );
-              
-              if (demographicsResult.data && genderResult.data && genderResult.data.length > 0) {
-                result.push({
-                  region: region.name,
-                  ageGroups: demographicsResult.data.map(demo => ({
-                    group: demo.age_group,
-                    percentage: demo.percentage
-                  })),
-                  genderSplit: {
-                    male: genderResult.data[0].male,
-                    female: genderResult.data[0].female
-                  },
-                  incomeLevel: genderResult.data[0].income_level
-                });
-              }
-            }
-            
-            return result;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for demographics by region, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       // First get all regions
       const { data: regionsData, error: regionsError } = await supabase
         .from('regions')
@@ -883,51 +485,7 @@ class SupabaseDataService {
    */
   async getTopProvidersByMarket() {
     try {
-      if (this.mcpEnabled) {
-        // Use MCP to get data
-        try {
-          const projectId = 'cbopynuvhcymbumjnvay';
-          
-          // Get unique markets
-          const marketsResult = await mcpSupabaseService.executeSql(
-            projectId,
-            `SELECT DISTINCT market FROM top_providers`
-          );
-          
-          if (marketsResult.data) {
-            const marketsData = marketsResult.data;
-            const result = [];
-            
-            // For each market, get providers
-            for (const marketObj of marketsData) {
-              const market = marketObj.market;
-              
-              const providersResult = await mcpSupabaseService.executeSql(
-                projectId,
-                `SELECT provider_name, provider_type, market_share 
-                 FROM top_providers WHERE market = '${market}'`
-              );
-              
-              if (providersResult.data) {
-                result.push({
-                  market,
-                  providers: providersResult.data.map(provider => ({
-                    name: provider.provider_name,
-                    type: provider.provider_type,
-                    marketShare: provider.market_share
-                  }))
-                });
-              }
-            }
-            
-            return result;
-          }
-        } catch (mcpError) {
-          console.error('Error using MCP for top providers by market, falling back to direct Supabase:', mcpError);
-        }
-      }
-      
-      // Direct Supabase connection (fallback)
+      // Direct Supabase connection
       // Get unique markets
       const { data: marketsData, error: marketsError } = await supabase
         .from('top_providers')

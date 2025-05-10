@@ -5,12 +5,10 @@ import DashboardSupabase from './components/DashboardSupabase';
 import { ThemeProvider } from './services/theme/ThemeContext';
 import { useEffect, useState } from 'react';
 import { supabaseDataService } from './services/supabase/supabaseDataService';
-import { mcpSupabaseService } from './services/supabase/mcpSupabaseService';
 import { Alert, Snackbar } from '@mui/material';
 import apiService from './services/apiService';
 
 function App({ initializationError = false }) {
-  const [mcpInitialized, setMcpInitialized] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
 
@@ -67,26 +65,6 @@ function App({ initializationError = false }) {
             severity: 'error'
           });
         }
-        
-        // Try to initialize MCP Supabase service if available
-        try {
-          console.log('Checking for MCP Supabase service...');
-          const mcpResult = await mcpSupabaseService.initialize();
-          
-          if (mcpResult.success) {
-            console.log('MCP Supabase service initialized successfully');
-            setMcpInitialized(true);
-            setNotification({
-              open: true,
-              message: 'Connected to Supabase via MCP successfully!',
-              severity: 'success'
-            });
-          } else {
-            console.log('MCP Supabase service not available:', mcpResult.error);
-          }
-        } catch (mcpError) {
-          console.log('MCP Supabase service not available:', mcpError);
-        }
       } catch (error) {
         console.error('Error initializing services:', error);
         setNotification({
@@ -121,7 +99,7 @@ function App({ initializationError = false }) {
       
       <Routes>
         {/* Dashboard Routes */}
-        <Route path="/dashboard/*" element={<Dashboard mcpEnabled={mcpInitialized} backendConnected={backendConnected} />} />
+        <Route path="/dashboard/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
         
         {/* Supabase Dashboard Route - Primary route for Supabase data */}
         <Route path="/dashboard-supabase/*" element={<DashboardSupabase />} />

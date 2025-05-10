@@ -320,8 +320,8 @@ const dentalProcedures = [
     growth: 17.5, 
     marketSize2025: 4.7, 
     primaryAgeGroup: "All ages", 
-    trends: "CBCT integration for comprehensive treatment planning",
-    futureOutlook: "Very strong growth with reduced radiation dosage and increased applications"
+    trends: "CBCT becoming standard for treatment planning and diagnostics",
+    futureOutlook: "Very strong growth with integration into all aspects of digital workflow"
   }
 ];
 

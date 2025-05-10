@@ -7,10 +7,6 @@ import App from './App';
 import theme from './theme';
 
 import { ensureDataExists } from './services/dataRefreshService';
-import { mcpClient } from './services/supabase/mcpClient';
-
-// Register the Supabase MCP client
-mcpClient.registerSupabaseMcp();
 
 // Initialize data refresh service to ensure we have real data in Supabase
 ensureDataExists().then(result => {

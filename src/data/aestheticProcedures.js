@@ -1,13 +1,13 @@
 // Comprehensive Aesthetic Industry Data
 const aestheticProcedures = [
-  // Facial Injectables
+  // Injectables
   { 
-    name: "Botox Injections", 
+    name: "Botulinum Toxin (Botox)", 
     category: "Injectables",
-    growth: 13.6, 
-    marketSize2025: 9.1, 
-    primaryAgeGroup: "30-55", 
-    trends: "Preventative use in younger demographics, growing male market",
+    growth: 15.3, 
+    marketSize2025: 8.1, 
+    primaryAgeGroup: "25-65", 
+    trends: "Preventative use in younger patients, expanded applications",
     futureOutlook: "Strong growth with expanding age ranges and minimally invasive appeal"
   },
   { 
@@ -300,8 +300,8 @@ const aestheticProcedures = [
     growth: 12.8, 
     marketSize2025: 4.2, 
     primaryAgeGroup: "30-65", 
-    trends: "Medical approaches including GLP-1 agonists gaining popularity",
-    futureOutlook: "Strong growth with pharmaceutical innovations and holistic protocols"
+    trends: "Medical weight management programs integrated with aesthetics",
+    futureOutlook: "Strong growth with holistic wellness focus"
   }
 ];
 
@@ -347,6 +347,7 @@ const aestheticGenderDistribution = [
   { name: "Female", value: 87 }
 ];
 
+// Export named exports to match the structure expected by dataLoader.js
 export {
   aestheticProcedures,
   aestheticCategories,
