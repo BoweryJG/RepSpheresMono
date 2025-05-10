@@ -15,6 +15,11 @@ import {
   aestheticGenderDistribution 
 } from '../../data/aestheticProcedures';
 
+import {
+  dentalCompanies,
+  aestheticCompanies
+} from '../../data/dentalCompanies';
+
 import { 
   metropolitanMarkets,
   marketSizeByState,
@@ -52,6 +57,9 @@ export const loadAllDataToSupabase = async () => {
     
     // Load provider data
     await loadTopProviders();
+    
+    // Load companies data
+    await loadCompaniesData();
     
     console.log('All data successfully loaded to Supabase!');
     return { success: true, message: 'All data successfully loaded to Supabase!' };
@@ -465,6 +473,65 @@ const loadTopProviders = async () => {
   }
   
   console.log('Top providers data loaded successfully!');
+};
+
+/**
+ * Load dental and aesthetic companies to Supabase
+ */
+const loadCompaniesData = async () => {
+  console.log('Loading companies data...');
+  
+  // Load dental companies
+  for (const company of dentalCompanies) {
+    const { error } = await supabase
+      .from('companies')
+      .upsert({
+        name: company.name,
+        industry: 'Dental',
+        description: company.description,
+        website: company.website,
+        headquarters: company.headquarters,
+        founded: company.founded,
+        timeInMarket: company.timeInMarket,
+        parentCompany: company.parentCompany,
+        employeeCount: company.employeeCount,
+        revenue: company.revenue,
+        marketCap: company.marketCap,
+        marketShare: company.marketShare,
+        growthRate: company.growthRate,
+        keyOfferings: company.keyOfferings,
+        topProducts: company.topProducts
+      }, { onConflict: 'name' });
+    
+    if (error) throw error;
+  }
+  
+  // Load aesthetic companies
+  for (const company of aestheticCompanies) {
+    const { error } = await supabase
+      .from('companies')
+      .upsert({
+        name: company.name,
+        industry: 'Aesthetic',
+        description: company.description,
+        website: company.website,
+        headquarters: company.headquarters,
+        founded: company.founded,
+        timeInMarket: company.timeInMarket,
+        parentCompany: company.parentCompany,
+        employeeCount: company.employeeCount,
+        revenue: company.revenue,
+        marketCap: company.marketCap,
+        marketShare: company.marketShare,
+        growthRate: company.growthRate,
+        keyOfferings: company.keyOfferings,
+        topProducts: company.topProducts
+      }, { onConflict: 'name' });
+    
+    if (error) throw error;
+  }
+  
+  console.log('Companies data loaded successfully!');
 };
 
 // Function to check if data is already loaded

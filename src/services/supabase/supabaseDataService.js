@@ -523,6 +523,64 @@ class SupabaseDataService {
       throw error;
     }
   }
+  
+  /**
+   * Get dental companies
+   */
+  async getDentalCompanies() {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('industry', 'Dental');
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching dental companies:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get aesthetic companies
+   */
+  async getAestheticCompanies() {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('industry', 'Aesthetic');
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching aesthetic companies:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all companies
+   */
+  async getAllCompanies() {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('industry', { ascending: true })
+        .order('marketShare', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching all companies:', error);
+      throw error;
+    }
+  }
 }
 
 export const supabaseDataService = new SupabaseDataService();
