@@ -2,15 +2,86 @@ import { CssBaseline } from '@mui/material';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DashboardSupabase from './components/DashboardSupabase';
-import { ThemeProvider } from './services/theme/ThemeContext';
+import Login from './components/Login';
+import { IndustryThemeProvider, useIndustryTheme } from './services/theme/IndustryThemeContext';
 import { useEffect, useState } from 'react';
 import { supabaseDataService } from './services/supabase/supabaseDataService';
-import { Alert, Snackbar } from '@mui/material';
+import { Alert, Snackbar, Box, Button, CircularProgress } from '@mui/material';
 import apiService from './services/apiService';
+import { isAuthenticated, getCurrentUser, signOut } from './services/supabase/supabaseAuth';
 
-function App({ initializationError = false }) {
+// Create a separate component for the theme switcher buttons
+const ThemeSwitcher = () => {
+  const { industry, changeIndustryTheme } = useIndustryTheme();
+  
+  return (
+    <Box sx={{ position: 'fixed', top: 8, right: 16, zIndex: 9999 }}>
+      <Button 
+        onClick={() => changeIndustryTheme('dental')} 
+        variant={industry === 'dental' ? 'contained' : 'outlined'} 
+        sx={{ mr: 1 }}
+      >
+        Dental
+      </Button>
+      <Button 
+        onClick={() => changeIndustryTheme('aesthetic')} 
+        variant={industry === 'aesthetic' ? 'contained' : 'outlined'} 
+        sx={{ mr: 1 }}
+      >
+        Aesthetic
+      </Button>
+      <Button 
+        onClick={() => changeIndustryTheme('random')} 
+        variant={industry === 'random' ? 'contained' : 'outlined'}
+      >
+        Cosmic/Random
+      </Button>
+    </Box>
+  );
+};
+
+function AppContent({ initializationError = false }) {
   const [backendConnected, setBackendConnected] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        setAuthLoading(true);
+        const isAuth = await isAuthenticated();
+        setAuthenticated(isAuth);
+        
+        if (isAuth) {
+          const userResult = await getCurrentUser();
+          if (userResult.success) {
+            setUser(userResult.user);
+          }
+        }
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+        setAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+
+  const handleLoginSuccess = (loginUser) => {
+    setAuthenticated(true);
+    setUser(loginUser);
+  };
+  
+  const handleLogout = async () => {
+    await signOut();
+    setAuthenticated(false);
+    setUser(null);
+  };
 
   // Initialize services when the app loads
   useEffect(() => {
@@ -83,7 +154,8 @@ function App({ initializationError = false }) {
   };
 
   return (
-    <ThemeProvider>
+    <>
+      <ThemeSwitcher />
       <CssBaseline />
       
       <Snackbar 
@@ -97,21 +169,49 @@ function App({ initializationError = false }) {
         </Alert>
       </Snackbar>
       
-      <Routes>
-        {/* Dashboard Routes */}
-        <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
-        
-        {/* Supabase Dashboard Route - Primary route for Supabase data */}
-        <Route path="/dashboard/*" element={<DashboardSupabase />} />
-        
-        {/* Redirect root to dashboard by default */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-      
-    </ThemeProvider>
+      {authLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress size={60} />
+        </Box>
+      ) : authenticated ? (
+        <>
+          {/* Add logout button */}
+          <Box sx={{ position: 'fixed', top: 8, left: 16, zIndex: 9999 }}>
+            <Button 
+              onClick={handleLogout} 
+              variant="outlined" 
+              color="secondary"
+            >
+              Logout
+            </Button>
+          </Box>
+          
+          <Routes>
+            {/* Dashboard Routes */}
+            <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
+            
+            {/* Supabase Dashboard Route - Primary route for Supabase data */}
+            <Route path="/dashboard/*" element={<DashboardSupabase user={user} />} />
+            
+            {/* Redirect root to dashboard by default */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Catch all - redirect to dashboard */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </>
+      ) : (
+        <Login onLoginSuccess={handleLoginSuccess} />
+      )}
+    </>
+  );
+}
+
+function App(props) {
+  return (
+    <IndustryThemeProvider>
+      <AppContent {...props} />
+    </IndustryThemeProvider>
   );
 }
 

@@ -1,13 +1,57 @@
 import { supabase } from './supabaseClient';
 import { loadAllDataToSupabase } from './dataLoader';
+import { getCurrentSession, signInWithEmail } from './supabaseAuth';
 
 /**
  * Class to fetch market insight data from Supabase
  */
 class SupabaseDataService {
+  constructor() {
+    this.isAuthenticated = false;
+  }
+
+  /**
+   * Ensure authentication before making data requests
+   * @returns {Promise<boolean>} Authentication status
+   */
+  async ensureAuthentication() {
+    try {
+      // First check if we already have a session
+      const sessionResult = await getCurrentSession();
+      if (sessionResult.success && sessionResult.session) {
+        this.isAuthenticated = true;
+        return true;
+      }
+      
+      // Try automatic login with environment variables
+      if (import.meta.env.VITE_SUPABASE_USER && import.meta.env.VITE_SUPABASE_PASSWORD) {
+        const loginResult = await signInWithEmail(
+          import.meta.env.VITE_SUPABASE_USER,
+          import.meta.env.VITE_SUPABASE_PASSWORD
+        );
+        
+        if (loginResult.success) {
+          this.isAuthenticated = true;
+          console.log('Auto-authenticated with Supabase');
+          return true;
+        }
+      }
+      
+      // Not authenticated, but we'll continue anyway with reduced functionality
+      console.warn('Not authenticated with Supabase - some operations may fail');
+      return false;
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+      return false;
+    }
+  }
   async initialize() {
     try {
       console.log('Initializing Supabase Data Service...');
+      
+      // Try to authenticate first
+      await this.ensureAuthentication();
+      
       console.log('Setting up database schema...');
       await this.setupSchema();
       console.log('Loading all data to Supabase tables...');
@@ -100,13 +144,11 @@ class SupabaseDataService {
       if (procError) throw procError;
       // Fetch categories
       const { data: categories, error: catError } = await supabase
-        .from('categories')
-        .select('id, category_label')
-        .eq('industry', 'aesthetic')
-        .order('position', { ascending: true });
+        .from('aesthetic_categories')
+        .select('id, name');
       if (catError) throw catError;
       // Map category_id to category name
-      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
+      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
       return procedures.map(proc => ({
         name: proc.name,
         category: categoryMap[proc.category_id] || '',
@@ -148,14 +190,12 @@ class SupabaseDataService {
   async getAestheticCategories() {
     try {
       const { data, error } = await supabase
-        .from('categories')
-        .select('category_label')
-        .eq('industry', 'aesthetic')
-        .order('position', { ascending: true });
+        .from('aesthetic_categories')
+        .select('name');
       
       if (error) throw error;
       
-      return data.map(category => category.category_label);
+      return data.map(category => category.name);
     } catch (error) {
       console.error('Error fetching aesthetic categories:', error); 
       throw error;

@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useIndustryTheme } from '../services/theme/IndustryThemeContext';
+import WbTwilightIcon from '@mui/icons-material/WbTwilight';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { refreshAllData } from '../refreshData';
 import { 
   Box, 
   Container, 
@@ -61,9 +65,11 @@ import MarketNewsTab from './MarketNewsTab';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
-export default function DashboardSupabase() {
+export default function DashboardSupabase({ user }) {
   const theme = useTheme();
-  const [isDental, setIsDental] = useState(true);
+  console.log('DashboardSupabase theme:', theme);
+  const { industry, changeIndustryTheme, toggleCosmicMode, isCosmicMode } = useIndustryTheme();
+  const isDental = industry === 'dental';
   const [tabValue, setTabValue] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('All');
   
@@ -127,7 +133,8 @@ export default function DashboardSupabase() {
   
   // Handle industry toggle switch
   const handleIndustryChange = () => {
-    setIsDental(!isDental);
+    const newIndustry = isDental ? 'aesthetic' : 'dental';
+    changeIndustryTheme(newIndustry);
     setCategoryFilter('All'); // Reset category filter when changing industries
   };
   
@@ -221,13 +228,32 @@ export default function DashboardSupabase() {
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Alert severity="info" sx={{ mb: 4 }}>
+      <Alert severity="info" sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="subtitle1">
           This dashboard is using real-time data from Supabase database!
         </Typography>
+        <Chip
+          icon={<RefreshIcon />}
+          label="Refresh Data"
+          color="primary"
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              await refreshAllData();
+              // Re-fetch data after refresh
+              window.location.reload();
+            } catch (err) {
+              console.error('Error refreshing data:', err);
+              setError('Failed to refresh data. Please try again later.');
+              setLoading(false);
+            }
+          }}
+          sx={{ cursor: 'pointer' }}
+        />
       </Alert>
       
-      {/* Header with toggle switch */}
+      {/* Header with toggle switches */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h3" component="h1" gutterBottom color="primary">
@@ -237,16 +263,39 @@ export default function DashboardSupabase() {
             {industryDescription}
           </Typography>
         </Box>
-        <FormControlLabel
-          control={
-            <Switch 
-              checked={!isDental}
-              onChange={handleIndustryChange}
-              color="primary"
-            />
-          }
-          label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={!isDental}
+                onChange={handleIndustryChange}
+                color="primary"
+              />
+            }
+            label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
+          />
+          
+          {/* Cosmic Theme Toggle */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isCosmicMode}
+                onChange={toggleCosmicMode}
+                color="secondary"
+                icon={<WbTwilightIcon />}
+                checkedIcon={<WbTwilightIcon />}
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <WbTwilightIcon fontSize="small" />
+                <Typography variant="body2">
+                  {isCosmicMode ? "Disable Cosmic Mode" : "Enable Cosmic Mode"}
+                </Typography>
+              </Box>
+            }
+          />
+        </Box>
       </Box>
       
       {/* Overview Cards */}
