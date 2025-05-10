@@ -90,7 +90,7 @@ class SupabaseDataService {
       // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from('categories')
-        .select('category_label')
+        .select('id, category_label')
         .eq('industry', 'dental')
         .order('position', { ascending: true });
       if (catError) throw catError;
@@ -125,7 +125,7 @@ class SupabaseDataService {
       // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from('categories')
-        .select('category_label')
+        .select('id, category_label')
         .eq('industry', 'aesthetic')
         .order('position', { ascending: true });
       if (catError) throw catError;
