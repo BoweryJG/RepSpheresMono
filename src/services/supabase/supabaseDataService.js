@@ -536,7 +536,15 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      return data;
+      // Transform the data to match expected format and parse JSON strings
+      return data.map(company => ({
+        ...company,
+        marketShare: parseFloat(company.marketShare) || 0,
+        growthRate: parseFloat(company.growthRate) || 0,
+        keyOfferings: this._parseJsonField(company.keyOfferings, []),
+        topProducts: this._parseJsonField(company.topProducts, []),
+        timeInMarket: company.timeInMarket || 0
+      }));
     } catch (error) {
       console.error('Error fetching dental companies:', error);
       throw error;
@@ -555,7 +563,15 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      return data;
+      // Transform the data to match expected format and parse JSON strings
+      return data.map(company => ({
+        ...company,
+        marketShare: parseFloat(company.marketShare) || 0,
+        growthRate: parseFloat(company.growthRate) || 0,
+        keyOfferings: this._parseJsonField(company.keyOfferings, []),
+        topProducts: this._parseJsonField(company.topProducts, []),
+        timeInMarket: company.timeInMarket || 0
+      }));
     } catch (error) {
       console.error('Error fetching aesthetic companies:', error);
       throw error;
@@ -575,10 +591,43 @@ class SupabaseDataService {
       
       if (error) throw error;
       
-      return data;
+      // Transform the data to match expected format and parse JSON strings
+      return data.map(company => ({
+        ...company,
+        marketShare: parseFloat(company.marketShare) || 0,
+        growthRate: parseFloat(company.growthRate) || 0,
+        keyOfferings: this._parseJsonField(company.keyOfferings, []),
+        topProducts: this._parseJsonField(company.topProducts, []),
+        timeInMarket: company.timeInMarket || 0
+      }));
     } catch (error) {
       console.error('Error fetching all companies:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Helper method to parse JSON field with error handling
+   * @param {string} jsonString - The JSON string to parse
+   * @param {array} defaultValue - Default value if parsing fails
+   * @returns {array} Parsed array or default value
+   */
+  _parseJsonField(jsonString, defaultValue = []) {
+    if (!jsonString) return defaultValue;
+    
+    try {
+      // Handle both string JSON and already parsed objects
+      if (typeof jsonString === 'string') {
+        return JSON.parse(jsonString);
+      } else if (Array.isArray(jsonString)) {
+        return jsonString;
+      } else {
+        console.warn('Expected JSON string or array, got:', typeof jsonString);
+        return defaultValue;
+      }
+    } catch (error) {
+      console.warn('Error parsing JSON field:', error);
+      return defaultValue;
     }
   }
 }
