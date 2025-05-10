@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { supabaseDataService } from './services/supabase/supabaseDataService';
 import { Alert, Snackbar, Box, Button, CircularProgress } from '@mui/material';
 import apiService from './services/apiService';
+import { supabase } from './services/supabase/supabaseClient';
 import { isAuthenticated, getCurrentUser, signOut } from './services/supabase/supabaseAuth';
 
 // Create a separate component for the theme switcher buttons
@@ -52,6 +53,24 @@ function AppContent({ initializationError = false }) {
     const checkAuth = async () => {
       try {
         setAuthLoading(true);
+        
+        // Check for OAuth redirects first
+        if (window.location.hash) {
+          console.log('OAuth redirect detected');
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.session) {
+            setAuthenticated(true);
+            setUser(data.session.user);
+            return;
+          }
+        }
+        
+        // Regular authentication check
         const isAuth = await isAuthenticated();
         setAuthenticated(isAuth);
         
