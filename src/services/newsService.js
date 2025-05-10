@@ -151,35 +151,43 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
 };
 
 /**
- * Fetch data from Brave Search MCP
+ * Fetch data from Brave Search REST API
  * @param {string} query - Search query
  * @param {number} count - Number of results to return
  * @returns {Promise<Array>} - Array of search results
  */
 const fetchFromBraveSearch = async (query, count = 10) => {
-  try {
-    console.log(`Making call to Brave Search MCP with query: "${query}"`);
-    
-    // Use the Brave Search MCP
-    const response = await use_mcp_tool({
-      server_name: 'brave',
-      tool_name: 'brave_web_search',
-      arguments: {
-        query: query,
-        count: count
-      }
-    });
-    
-    if (!response || !response.results) {
-      throw new Error('Brave search MCP returned no results');
-    }
-    
-    console.log(`Received ${response.results.length} results from Brave Search MCP`);
-    return response.results || [];
-  } catch (error) {
-    console.error('Error with Brave Search MCP:', error);
-    throw error; // Explicitly throw to force fallback
+  const apiKey = import.meta.env.VITE_BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing VITE_BRAVE_SEARCH_API_KEY environment variable');
   }
+  const url = `https://api.search.brave.com/res/v1/web/search?size=${count}&q=${encodeURIComponent(
+    query
+  )}`;
+  console.log(`Fetching ${count} results from Brave Search API for query: "${query}"`);
+  const res = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'X-API-Key': apiKey
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Brave Search API error: ${res.status} - ${text}`);
+  }
+  const json = await res.json();
+  const results = json.data?.results || [];
+  console.log(`Received ${results.length} results from Brave Search API`);
+  // Map to article format
+  return results.map(item => ({
+    id: item.url,
+    title: item.title,
+    url: item.url,
+    summary: item.description || '',
+    image_url: item.thumbnail?.url || '',
+    source: item.source || '',
+    published_date: item.publish_time || ''
+  }));
 };
 
 /**
