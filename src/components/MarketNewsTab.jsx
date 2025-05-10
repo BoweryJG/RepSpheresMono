@@ -40,6 +40,13 @@ import {
   getUpcomingEvents
 } from '../services/newsService';
 
+import { 
+  getReliableImageUrl, 
+  getFallbackImageUrl, 
+  getBackupImagesForCategory, 
+  getRotationIndex 
+} from '../services/imageService';
+
 const MarketNewsTab = ({ isDental }) => {
   const industry = isDental ? 'dental' : 'aesthetic';
   
@@ -220,8 +227,23 @@ const MarketNewsTab = ({ isDental }) => {
                   <CardMedia
                     component="img"
                     height="180"
-                    src={article.image_url || 'https://via.placeholder.com/300x180?text=No+Image'}
+                    src={getReliableImageUrl(article.image_url, article, industry)}
                     alt={article.title}
+                    onError={(e) => {
+                      console.log('Image failed to load, using fallback:', article.title);
+                      // Use our reliable fallback system
+                      const backupImages = getBackupImagesForCategory(article.category, industry);
+                      const index = getRotationIndex(article.title, backupImages.length);
+                      e.target.src = backupImages[index];
+                      
+                      // Add error handler for fallback image as well
+                      e.target.onerror = () => {
+                        console.log('Fallback image also failed, using last resort:', article.title);
+                        e.target.src = getFallbackImageUrl(article, industry);
+                        // Remove the error handler to prevent infinite loop
+                        e.target.onerror = null;
+                      };
+                    }}
                   />
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Typography variant="overline" color="text.secondary">
@@ -339,8 +361,23 @@ const MarketNewsTab = ({ isDental }) => {
               <CardMedia
                 component="img"
                 sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
-                src={article.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}
+                src={getReliableImageUrl(article.image_url, article, industry)}
                 alt={article.title}
+                onError={(e) => {
+                  console.log('Image failed to load, using fallback:', article.title);
+                  // Use our reliable fallback system
+                  const backupImages = getBackupImagesForCategory(article.category, industry);
+                  const index = getRotationIndex(article.title, backupImages.length);
+                  e.target.src = backupImages[index];
+                  
+                  // Add error handler for fallback image as well
+                  e.target.onerror = () => {
+                    console.log('Fallback image also failed, using last resort:', article.title);
+                    e.target.src = getFallbackImageUrl(article, industry);
+                    // Remove the error handler to prevent infinite loop
+                    e.target.onerror = null;
+                  };
+                }}
               />
               <CardContent sx={{ flex: '1 0 auto' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
