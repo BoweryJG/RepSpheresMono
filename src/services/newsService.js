@@ -167,7 +167,7 @@ const fetchFromBraveSearch = async (query, count = 10) => {
   const res = await fetch(url, {
     headers: {
       'Accept': 'application/json',
-      'X-API-Key': apiKey
+      'x-subscription-token': apiKey // Fixed header name to match what Brave API expects
     }
   });
   if (!res.ok) {
