@@ -39,7 +39,10 @@ const verifyData = async () => {
     { name: 'gender_split_by_region', expectedMinCount: 1 },
     
     // Provider tables
-    { name: 'top_providers', expectedMinCount: 1 }
+    { name: 'top_providers', expectedMinCount: 1 },
+    
+    // Companies table (added to verification)
+    { name: 'companies', expectedMinCount: 5 }
   ];
   
   let tableCounts = {};

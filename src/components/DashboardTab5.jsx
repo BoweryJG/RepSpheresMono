@@ -34,7 +34,7 @@ import {
   YAxis,
   CartesianGrid
 } from 'recharts';
-import { fetchCompanyData } from '../services/searchService';
+import { supabaseDataService } from '../services/supabase/supabaseDataService';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -67,9 +67,13 @@ const CompaniesTab = ({ isDental, COLORS }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const industry = isDental ? 'dental' : 'aesthetic';
-        const data = await fetchCompanyData(industry);
-        setCompanies(data);
+        if (isDental) {
+          const data = await supabaseDataService.getDentalCompanies();
+          setCompanies(data);
+        } else {
+          const data = await supabaseDataService.getAestheticCompanies();
+          setCompanies(data);
+        }
         setError(null);
       } catch (err) {
         setError('Failed to load company data');

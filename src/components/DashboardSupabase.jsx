@@ -55,6 +55,9 @@ import {
 } from 'recharts';
 
 import { supabaseDataService } from '../services/supabase/supabaseDataService';
+import CompaniesTab from './DashboardTab5';
+import MetropolitanMarketsTab from './DashboardTab6';
+import MarketNewsTab from './MarketNewsTab';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
@@ -342,6 +345,9 @@ export default function DashboardSupabase() {
           <Tab label="Market Analysis" />
           <Tab label="Patient Demographics" />
           <Tab label="Growth Predictions" />
+          <Tab label="Companies" />
+          <Tab label="Metropolitan Markets" />
+          <Tab label="News" />
         </Tabs>
       </Paper>
       
@@ -706,6 +712,30 @@ export default function DashboardSupabase() {
             </Card>
           </Grid>
         </Grid>
+      )}
+      
+      {/* Tab 5: Companies */}
+      {tabValue === 4 && (
+        <CompaniesTab 
+          isDental={isDental}
+          COLORS={COLORS}
+        />
+      )}
+      
+      {/* Tab 6: Metropolitan Markets */}
+      {tabValue === 5 && (
+        <MetropolitanMarketsTab 
+          isDental={isDental}
+          COLORS={COLORS}
+          metropolitanMarkets={metropolitanMarkets}
+        />
+      )}
+      
+      {/* Tab 7: News */}
+      {tabValue === 6 && (
+        <MarketNewsTab 
+          isDental={isDental}
+        />
       )}
       
       {/* Footer */}

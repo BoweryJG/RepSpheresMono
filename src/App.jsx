@@ -99,10 +99,10 @@ function App({ initializationError = false }) {
       
       <Routes>
         {/* Dashboard Routes */}
-        <Route path="/dashboard/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
+        <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
         
         {/* Supabase Dashboard Route - Primary route for Supabase data */}
-        <Route path="/dashboard-supabase/*" element={<DashboardSupabase />} />
+        <Route path="/dashboard/*" element={<DashboardSupabase />} />
         
         {/* Redirect root to dashboard by default */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
