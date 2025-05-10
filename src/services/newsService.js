@@ -3,11 +3,10 @@
  * 
  * This service provides news data related to the dental and aesthetic industries.
  * It fetches news articles from various sources and provides filtering capabilities.
- * Fetching priority: Backend API → Supabase → Brave search/Firecrawl → Mock data
+ * Fetching priority: External sources (Brave search/Firecrawl) → Supabase → Mock data
  */
 
 import { supabaseClient } from './supabase/supabaseClient.js';
-import backendService from './backendService.js';
 
 /**
  * Fetch news articles for the specified industry
@@ -21,82 +20,43 @@ import backendService from './backendService.js';
  * @returns {Promise<Array>} - Array of news article objects
  */
 export const getNewsArticles = async (industry, options = {}) => {
+  // First, attempt to fetch live via Brave Search / Firecrawl
   try {
-    // Try to fetch from backend API first
-    try {
-      console.log(`Attempting to fetch ${industry} news articles from backend API...`);
-      const { limit = 10, category = null, source = null, searchTerm = null } = options;
-      
-      const backendOptions = {};
-      if (limit) backendOptions.limit = limit;
-      if (category) backendOptions.category = category;
-      if (source) backendOptions.source = source;
-      
-      const articles = await backendService.getNews(industry.toLowerCase(), backendOptions);
-      
-      if (articles && articles.length > 0) {
-        console.log(`Found ${articles.length} ${industry} news articles from backend API`);
-        return articles;
-      }
-    } catch (backendError) {
-      console.error('Error fetching news from backend API:', backendError);
-      console.log('Falling back to Supabase...');
+    console.log(`Fetching ${industry} news articles from external sources...`);
+    const external = await fetchNewsFromExternalSources(industry, options);
+    if (external && external.length > 0) {
+      console.log(`Found ${external.length} ${industry} news articles externally`);
+      return external;
     }
-    
-    // If backend fails, try to fetch from Supabase
-    console.log(`Attempting to fetch ${industry} news articles from Supabase...`);
-    
+  } catch (extErr) {
+    console.error('Error fetching news from external sources:', extErr);
+  }
+  // Fallback to Supabase storage
+  try {
+    console.log(`Fetching ${industry} news articles from Supabase...`);
     const { limit = 10, category = null, source = null, searchTerm = null } = options;
-    
     let query = supabaseClient
       .from('news_articles')
       .select('*')
       .eq('industry', industry.toLowerCase())
       .order('published_date', { ascending: false })
       .limit(limit);
-    
-    // Apply filters if provided
-    if (category) {
-      query = query.eq('category', category);
-    }
-    
-    if (source) {
-      query = query.eq('source', source);
-    }
-    
-    if (searchTerm) {
-      query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
-    }
-    
+    if (category) query = query.eq('category', category);
+    if (source) query = query.eq('source', source);
+    if (searchTerm) query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
     const { data, error } = await query;
-    
-    if (error) {
-      throw error;
-    }
-    
-    // If we have data in Supabase, use it
+    if (error) throw error;
     if (data && data.length > 0) {
       console.log(`Found ${data.length} ${industry} news articles in Supabase`);
-      
-      // Store in backend API for future use if backend is available
-      try {
-        console.log('Syncing news articles to backend API...');
-        // This would be implemented in a real-world scenario
-      } catch (syncError) {
-        console.warn('Failed to sync news articles to backend:', syncError);
-      }
-      
       return data;
     }
-    
-    // If no data in Supabase, fetch from external sources
-    console.log(`No ${industry} news articles found in Supabase, fetching from external sources...`);
-    return await fetchNewsFromExternalSources(industry, options);
-  } catch (error) {
-    console.error('Error fetching news articles from Supabase:', error);
-    console.log(`Falling back to external sources for ${industry} news articles...`);
-    return await fetchNewsFromExternalSources(industry, options);
+  } catch (supErr) {
+    console.error('Error fetching news from Supabase:', supErr);
   }
+  // Last resort: mock
+  console.log(`No news found; generating mock ${industry} news...`);
+  const { limit = 10, category = null, source = null } = options;
+  return generateMockNewsArticles(industry, limit, category, source);
 };
 
 /**
