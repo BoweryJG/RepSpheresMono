@@ -46,6 +46,7 @@ import {
   getBackupImagesForCategory, 
   getRotationIndex 
 } from '../services/imageService';
+import { getGeminiFallbackImageUrl } from '../services/geminiImageService';
 
 const MarketNewsTab = ({ isDental }) => {
   const industry = isDental ? 'dental' : 'aesthetic';
@@ -229,9 +230,22 @@ const MarketNewsTab = ({ isDental }) => {
                     height="180"
                     src={getReliableImageUrl(article.image_url, article, industry)}
                     alt={article.title}
-                    onError={(e) => {
+                    onError={async (e) => {
                       console.log('Image failed to load, using fallback:', article.title);
-                      // Use our reliable fallback system
+                      
+                      try {
+                        // First try Gemini for AI-generated image
+                        const geminiUrl = await getGeminiFallbackImageUrl(article, industry);
+                        if (geminiUrl) {
+                          console.log('Using Gemini-generated image for:', article.title);
+                          e.target.src = geminiUrl;
+                          return;
+                        }
+                      } catch (error) {
+                        console.error('Gemini fallback failed, using standard fallbacks:', error);
+                      }
+                      
+                      // If Gemini fails, use our reliable fallback system
                       const backupImages = getBackupImagesForCategory(article.category, industry);
                       const index = getRotationIndex(article.title, backupImages.length);
                       e.target.src = backupImages[index];
@@ -363,9 +377,22 @@ const MarketNewsTab = ({ isDental }) => {
                 sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
                 src={getReliableImageUrl(article.image_url, article, industry)}
                 alt={article.title}
-                onError={(e) => {
+                onError={async (e) => {
                   console.log('Image failed to load, using fallback:', article.title);
-                  // Use our reliable fallback system
+                  
+                  try {
+                    // First try Gemini for AI-generated image
+                    const geminiUrl = await getGeminiFallbackImageUrl(article, industry);
+                    if (geminiUrl) {
+                      console.log('Using Gemini-generated image for:', article.title);
+                      e.target.src = geminiUrl;
+                      return;
+                    }
+                  } catch (error) {
+                    console.error('Gemini fallback failed, using standard fallbacks:', error);
+                  }
+                  
+                  // If Gemini fails, use our reliable fallback system
                   const backupImages = getBackupImagesForCategory(article.category, industry);
                   const index = getRotationIndex(article.title, backupImages.length);
                   e.target.src = backupImages[index];
