@@ -32,33 +32,42 @@ export const generateImageWithGemini = async (articleData, industry) => {
     // Create prompt for image generation
     const prompt = createImageGenerationPrompt(articleData, industry);
     
-    // Call Gemini API
+    // Call Gemini API to generate an image directly
     const imageUrl = await callGeminiImageAPI(prompt);
     
     // Verify the image URL works before caching it
-    if (imageUrl) {
+    if (imageUrl && imageUrl.startsWith('data:image')) { // Check if it's a data URL
       try {
-        // Pre-validate the URL exists and is accessible
+        // Pre-validate the URL (data URLs are intrinsically 'valid' if correctly formatted)
+        // The validateImageUrl function might need adjustment for data URLs or can be skipped.
+        console.log('Successfully received Gemini-generated image data URL');
+        geminiImageCache.set(cacheKey, imageUrl);
+        return imageUrl;
+      } catch (validationError) {
+        console.error('Error during (or after) Gemini image generation:', validationError);
+        // Fall through to default error handling
+      }
+    } else if (imageUrl) {
+      // If it's not a data URL, but some other URL (less likely with this new logic)
+      // attempt to validate it as before.
+       try {
         const validateImage = await validateImageUrl(imageUrl);
         if (validateImage) {
-          console.log('Successfully validated Gemini-generated image URL');
+          console.log('Successfully validated Gemini-returned (non-data) image URL');
           geminiImageCache.set(cacheKey, imageUrl);
           return imageUrl;
-        } else {
-          throw new Error('Image validation failed');
         }
       } catch (validationError) {
-        console.error('Error validating Gemini image URL:', validationError);
-        throw new Error('Image validation failed');
+        console.error('Error validating Gemini (non-data) image URL:', validationError);
       }
     }
     
-    // Fallback to traditional methods if Gemini fails
-    throw new Error('Gemini image generation failed');
+    // Fallback to traditional methods if Gemini fails to return a valid image data URL
+    throw new Error('Gemini image generation failed or did not return a valid image data URL');
   } catch (error) {
     console.error('Error generating image with Gemini:', error);
     
-    // First try reliable image URL
+    // First try reliable image URL as a fallback
     const reliableUrl = getReliableImageUrl(null, articleData, industry);
     return reliableUrl;
   }
@@ -70,12 +79,15 @@ export const generateImageWithGemini = async (articleData, industry) => {
  * @returns {Promise<boolean>} - Whether the image URL is valid
  */
 const validateImageUrl = async (url) => {
-  // Skip validation for local development or testing
+  // For data URLs, they are intrinsically valid if correctly formatted and generated.
+  // The browser will attempt to render them directly.
   if (url.startsWith('data:')) {
-    return true;
+    console.log('Skipping network validation for data URL.');
+    return true; 
   }
   
   // For Unsplash URLs, they're generally reliable so we'll assume they work
+  // This might be revisited if Unsplash reliability becomes an issue.
   if (url.includes('unsplash.com')) {
     return true;
   }
@@ -152,42 +164,41 @@ const createImageGenerationPrompt = (articleData, industry) => {
 };
 
 /**
- * Generate an image URL based on the prompt
- * Since Gemini doesn't have direct image generation capabilities,
- * we'll use a different approach - generating a consistent URL for Unsplash
- * with detailed search parameters based on our prompt.
- * 
+ * Calls the Gemini API to generate an image based on the prompt.
+ * Uses the 'gemini-2.0-flash-preview-image-generation' model.
  * @param {string} prompt - Text prompt for image generation
- * @returns {Promise<string>} - URL to an image
+ * @returns {Promise<string|null>} - Data URL of the generated image (e.g., data:image/png;base64,...) or null on failure.
  */
 const callGeminiImageAPI = async (prompt) => {
   try {
-    // Extract key phrases from the prompt
-    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent';
     
-    // First, use Gemini to extract premium, high-quality keywords
     const requestData = {
       contents: [
         {
           parts: [
-            {
-              text: `Generate exactly 6 premium, award-winning stock photography keywords for a high-quality image about: "${prompt}"
-              Format as comma-separated values only with no additional text.
-              Focus on sophisticated, editorial, professional terminology that would find the most visually impressive images.
-              Include terms for photographic style like 'award-winning', 'professional', 'premium', 'editorial', etc.`
-            }
+            { text: prompt }
           ]
         }
       ],
       generationConfig: {
-        temperature: 0.3,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 256,
-      }
+        responseModalities: ["IMAGE", "TEXT"], // Request both image and text as per documentation
+        // Other potential configs (match to API docs if needed):
+        // "temperature": 0.4,
+        // "topP": 1.0,
+        // "topK": 32,
+        // "maxOutputTokens": 2048, // Or whatever is appropriate for image metadata/text part
+      },
+      // Safety settings can be configured here if needed. Example from docs:
+      // safetySettings: [
+      //   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      //   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      //   { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      //   { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      // ],
     };
     
-    console.log('Generating premium keywords with Gemini for:', prompt.substring(0, 50) + '...');
+    console.log(`Generating image with Gemini (gemini-2.0-flash-preview-image-generation) for prompt: "${prompt.substring(0, 100)}..."`);
     
     const response = await fetch(`${endpoint}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -198,161 +209,75 @@ const callGeminiImageAPI = async (prompt) => {
     });
     
     if (!response.ok) {
+      const errorBody = await response.text(); // Get more details from the error response
+      console.error('Gemini API Error Status:', response.status, 'Body:', errorBody);
       throw new Error(`Gemini API responded with status: ${response.status}`);
     }
     
-    const data = await response.json();
-    
-    // Extract keywords from Gemini response
-    let keywords = '';
-    if (data.candidates && 
-        data.candidates[0] && 
-        data.candidates[0].content && 
-        data.candidates[0].content.parts) {
-      
-      const parts = data.candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.text) {
-          keywords = part.text.trim();
-          break;
+    const responseData = await response.json();
+
+    // Process the response to extract the image data
+    if (responseData.candidates && responseData.candidates.length > 0) {
+      const candidate = responseData.candidates[0];
+      if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            const mimeType = part.inlineData.mimeType || 'image/png'; // Default to png if not specified
+            const base64ImageData = part.inlineData.data;
+            console.log(`Successfully received image data from Gemini. Mime-type: ${mimeType}.`);
+            return `data:${mimeType};base64,${base64ImageData}`;
+          } else if (part.text) {
+            // Log any text part, it might contain useful info or refusal reasons
+            console.log('Gemini API returned text part:', part.text);
+          }
         }
       }
     }
-    
-    if (!keywords) {
-      throw new Error('No keywords generated from Gemini');
-    }
-    
-    console.log('Generated premium keywords:', keywords);
-    
-    // Add quality enhancers to ensure we get top tier results
-    const enhancedKeywords = `award-winning,professional,premium,editorial,high-resolution,${keywords}`;
-    
-    // Generate multiple high-quality image URLs using different services
-    const imageOptions = [
-      // Premium Unsplash collections with our enhanced keywords
-      `https://source.unsplash.com/featured/1600x900/?${encodeURIComponent(enhancedKeywords)}`,
-      `https://source.unsplash.com/1600x900/?editorial,${encodeURIComponent(keywords)}`,
-      
-      // Add unique parameter to prevent caching
-      `https://source.unsplash.com/random/1600x900/?${encodeURIComponent(enhancedKeywords)}&_=${Date.now()}`
-    ];
-    
-    // Create a unique, non-repeated URL by adding timestamp
-    const uniqueUrl = imageOptions[0] + `&t=${Date.now()}`;
-    console.log('Using premium image URL:', uniqueUrl);
-    
-    return uniqueUrl;
+
+    // If no image data is found after checking all parts and candidates
+    console.warn('Gemini API response did not contain image data in the expected format. Response:', JSON.stringify(responseData, null, 2));
+    throw new Error('Gemini API did not return image data.');
+
   } catch (error) {
-    console.error('Error generating premium image:', error);
-    
-    // Even our fallback should be high quality
-    try {
-      // Extract important terms from the prompt
-      const baseTerms = prompt.split(' ')
-        .filter(word => word.length > 3)
-        .slice(0, 3)
-        .join(',');
-      
-      // Always add quality terms to the fallback
-      const fallbackTerms = `award-winning,premium,professional,${baseTerms}`;
-      const fallbackUrl = `https://source.unsplash.com/featured/1600x900/?${encodeURIComponent(fallbackTerms)}&_=${Date.now()}`;
-      
-      console.log('Using premium fallback URL:', fallbackUrl);
-      return fallbackUrl;
-    } catch (fallbackError) {
-      console.error('Critical fallback error:', fallbackError);
-      
-      // Absolute last resort - a curated collection of professional images
-      return `https://source.unsplash.com/collection/1358248/1600x900?_=${Date.now()}`;
-    }
+    console.error('Error in callGeminiImageAPI:', error);
+    return null; // Return null to allow fallbacks in generateImageWithGemini to take over
   }
 };
 
 /**
- * Get a fallback image URL with Gemini as primary option
- * @param {Object} articleData - Article data
- * @param {string} industry - Industry
- * @returns {Promise<string>} - Best available image URL
+ * Get a fallback image URL using various strategies, with Gemini image generation as a primary option.
+ * This function attempts to generate an image with Gemini first. If that fails or returns an invalid URL,
+ * it falls back to other methods defined in `imageService.js`.
+ * 
+ * @param {Object} articleData - The article object, containing title, summary, category etc.
+ * @param {string} industry - The industry context (e.g., 'dental', 'aesthetic').
+ * @returns {Promise<string>} - A promise that resolves to the best available image URL.
  */
 export const getGeminiFallbackImageUrl = async (articleData, industry) => {
   try {
-    // Generate a unique cache key that includes timestamp to reduce cache hits
-    // (The user wants unique images each time)
-    const uniqueId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    const cacheKey = `gemini-${articleData.title}-${industry}-${uniqueId}`;
-    
-    // For this specific implementation, we'll intentionally avoid using cache most of the time
-    // to ensure variety of high-quality images
-    if (geminiImageCache.has(cacheKey) && Math.random() < 0.1) { // Only 10% chance to use cache
-      const cachedUrl = geminiImageCache.get(cacheKey);
-      console.log('Using cached Gemini image for:', articleData.title);
-      return cachedUrl;
+    // Attempt to generate a unique image with Gemini first
+    const geminiImageUrl = await generateImageWithGemini(articleData, industry);
+    if (geminiImageUrl && geminiImageUrl.startsWith('data:image')) {
+      // If Gemini provides a valid data URL, use it
+      console.log('Using Gemini-generated image for:', articleData.title);
+      return geminiImageUrl;
+    } else if (geminiImageUrl) {
+      // If it's some other URL from Gemini (less likely with new logic, but handle just in case)
+      const isValid = await validateImageUrl(geminiImageUrl);
+      if (isValid) {
+        console.log('Using validated (non-data) Gemini URL for:', articleData.title);
+        return geminiImageUrl;
+      }
     }
-    
-    // First try Gemini - this is our primary approach for high-quality images
-    const geminiUrl = await generateImageWithGemini(articleData, industry);
-    if (geminiUrl) {
-      // Store result in cache
-      geminiImageCache.set(cacheKey, geminiUrl);
-      return geminiUrl;
-    }
-    
-    // Try a more specific, premium approach if the first try fails
-    console.log('First attempt failed, trying premium collections...');
-    
-    // Build premium keywords
-    const keywords = articleData.title.split(' ')
-      .filter(word => word.length > 3)
-      .slice(0, 4)
-      .join(',');
-      
-    // Collection of high-quality Unsplash collections
-    const premiumCollections = [
-      '1358248', // Unsplash Editorial
-      '3694365', // Premium Stock
-      '1604880', // Business & Work
-      '4694315', // Premium Healthcare
-      '2262272'  // Premium Professional
-    ];
-    
-    // Select a collection based on a hash of the article title
-    const collectionIndex = articleData.title.split('').reduce((acc, char) => 
-      acc + char.charCodeAt(0), 0) % premiumCollections.length;
-    const collectionId = premiumCollections[collectionIndex];
-    
-    // Create a unique, high-quality URL from the premium collection
-    const premiumUrl = `https://source.unsplash.com/collection/${collectionId}/1600x900/?${encodeURIComponent(`premium,${industry},${keywords}`)}&_=${uniqueId}`;
-    
-    console.log('Using premium collection image:', premiumUrl);
-    return premiumUrl;
-    
-  } catch (error) {
-    console.error('Error getting Gemini fallback image:', error);
-    
-    // Even our last resort fallback should be high quality
-    try {
-      // Create more specific keywords from the article
-      const keywords = [
-        'premium',
-        'professional',
-        'magazine-quality',
-        articleData.category || industry,
-        ...articleData.title.split(' ').filter(w => w.length > 3).slice(0, 3)
-      ].join(',');
-      
-      // Force a unique URL every time
-      const timestamp = Date.now();
-      const uniqueUrl = `https://source.unsplash.com/featured/1600x900/?${encodeURIComponent(keywords)}&_=${timestamp}`;
-      
-      console.log('Using guaranteed premium fallback:', uniqueUrl);
-      return uniqueUrl;
-    } catch (fbError) {
-      console.error('Critical fallback error:', fbError);
-      
-      // Absolute last resort - a curated collection of premium images
-      // Ensure uniqueness with timestamp to prevent duplicates
-      return `https://source.unsplash.com/collection/3694365/1600x900?_=${Date.now()}`;
-    }
+    // If Gemini fails or returns an invalid/non-data URL, log it and proceed to other fallbacks
+    console.warn('Gemini image generation failed or returned invalid URL, attempting other fallbacks for:', articleData.title);
+  } catch (geminiError) {
+    console.error('Error during Gemini image generation attempt:', geminiError);
+    // Log the error and proceed to other fallbacks
   }
+
+  // Fallback to Unsplash or category image if Gemini fails
+  console.log('Falling back to Unsplash/category image for:', articleData.title);
+  const fallbackUrl = getFallbackImageUrl(articleData.category, industry, articleData.title);
+  return fallbackUrl;
 };
