@@ -15,13 +15,30 @@ class SupabaseDataService {
    */
   async initialize() {
     try {
-      const isDataLoaded = await checkDataLoaded();
+      console.log('Initializing Supabase Data Service...');
       
-      if (!isDataLoaded) {
-        console.log('Data not found in Supabase, loading it now...');
-        await loadAllDataToSupabase();
-      } else {
-        console.log('Data already loaded in Supabase');
+      // First try to check if data is loaded
+      try {
+        const isDataLoaded = await checkDataLoaded();
+        
+        if (!isDataLoaded) {
+          console.log('Data not found in Supabase, attempting to load it now...');
+          
+          // First try to set up the schema
+          console.log('Setting up database schema...');
+          await this.setupSchema();
+          
+          // Then load the data
+          console.log('Loading data to Supabase tables...');
+          await loadAllDataToSupabase();
+          
+          console.log('Data loaded successfully!');
+        } else {
+          console.log('Data already loaded in Supabase');
+        }
+      } catch (dataError) {
+        console.error('Error checking/loading data:', dataError);
+        console.log('Will try to proceed with MCP or direct connection anyway.');
       }
       
       // Check if MCP is initialized
@@ -39,6 +56,35 @@ class SupabaseDataService {
     } catch (error) {
       console.error('Error initializing Supabase data service:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Setup the database schema using the SQL script
+   */
+  async setupSchema() {
+    try {
+      console.log('Setting up Supabase schema...');
+      
+      // Execute schema setup command (expects setupSchema.js to be available)
+      const { exec } = await import('child_process');
+      
+      return new Promise((resolve, reject) => {
+        exec('npm run setup-schema', (error, stdout, stderr) => {
+          if (error) {
+            console.error('Error setting up schema:', error);
+            console.error(stderr);
+            reject(error);
+            return;
+          }
+          
+          console.log('Schema setup output:', stdout);
+          resolve(true);
+        });
+      });
+    } catch (error) {
+      console.error('Error during schema setup:', error);
+      throw error;
     }
   }
   
