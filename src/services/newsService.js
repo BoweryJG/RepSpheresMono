@@ -237,6 +237,51 @@ const extractArticleDetailsFromContent = (content, url, html) => {
     published_date: null,
     author: ''
   };
+
+  // Try to extract Open Graph image first if HTML is available
+  if (html) {
+    const ogImagePattern = /<meta\s+property=(?:"og:image"|'og:image')\s+content=(?:"([^"]*)"|'([^']*)')\s*\/?>/i;
+    const ogImageMatch = html.match(ogImagePattern);
+    if (ogImageMatch && (ogImageMatch[1] || ogImageMatch[2])) {
+      details.image_url = ogImageMatch[1] || ogImageMatch[2];
+      // Make sure the URL is absolute
+      if (details.image_url && details.image_url.startsWith('/')) {
+        try {
+          const urlObj = new URL(url);
+          details.image_url = `${urlObj.protocol}//${urlObj.hostname}${details.image_url}`;
+        } catch (e) {
+          console.error(`Error creating absolute URL from og:image: ${e}`);
+        }
+      }
+    }
+  }
+
+  // If no Open Graph image, extract image URL - first try markdown format
+  if (!details.image_url) {
+    const markdownImagePattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/;
+    const markdownImageMatch = content.match(markdownImagePattern);
+    if (markdownImageMatch && markdownImageMatch[1]) {
+      details.image_url = markdownImageMatch[1];
+    } 
+    // If no markdown image, try to extract from HTML if available (and no OG image was found)
+    else if (html) {
+      const imgTagPattern = /<img[^>]+src="([^"]+)"[^>]*>/i;
+      const imgMatches = html.match(imgTagPattern);
+      if (imgMatches && imgMatches[1]) {
+        details.image_url = imgMatches[1];
+        
+        // Make sure the URL is absolute
+        if (details.image_url.startsWith('/')) {
+          try {
+            const urlObj = new URL(url);
+            details.image_url = `${urlObj.protocol}//${urlObj.hostname}${details.image_url}`;
+          } catch (e) {
+            console.error(`Error creating absolute URL from img src: ${e}`);
+          }
+        }
+      }
+    }
+  }
   
   // Extract summary (first 200 characters)
   if (content.length > 0) {
@@ -252,31 +297,6 @@ const extractArticleDetailsFromContent = (content, url, html) => {
     // If no good paragraph found, use the first 200 characters
     if (!details.summary) {
       details.summary = content.substring(0, 200).replace(/\n/g, ' ') + '...';
-    }
-  }
-  
-  // Extract image URL - first try markdown format
-  const markdownImagePattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/;
-  const markdownImageMatch = content.match(markdownImagePattern);
-  if (markdownImageMatch && markdownImageMatch[1]) {
-    details.image_url = markdownImageMatch[1];
-  } 
-  // If no markdown image, try to extract from HTML if available
-  else if (html) {
-    const imgTagPattern = /<img[^>]+src="([^"]+)"[^>]*>/i;
-    const imgMatches = html.match(imgTagPattern);
-    if (imgMatches && imgMatches[1]) {
-      details.image_url = imgMatches[1];
-      
-      // Make sure the URL is absolute
-      if (details.image_url.startsWith('/')) {
-        try {
-          const urlObj = new URL(url);
-          details.image_url = `${urlObj.protocol}//${urlObj.hostname}${details.image_url}`;
-        } catch (e) {
-          console.error(`Error creating absolute URL: ${e}`);
-        }
-      }
     }
   }
   
