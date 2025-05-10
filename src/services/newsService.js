@@ -161,9 +161,8 @@ const fetchFromBraveSearch = async (query, count = 10) => {
   if (!apiKey) {
     throw new Error('Missing VITE_BRAVE_SEARCH_API_KEY environment variable');
   }
-  const url = `https://api.search.brave.com/res/v1/web/search?size=${count}&q=${encodeURIComponent(
-    query
-  )}`;
+  // Replace direct Brave Search API URL with proxied route
+  const url = `/api/brave-search?size=${count}&q=${encodeURIComponent(query)}`;
   console.log(`Fetching ${count} results from Brave Search API for query: "${query}"`);
   const res = await fetch(url, {
     headers: {
