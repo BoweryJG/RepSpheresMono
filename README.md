@@ -31,10 +31,14 @@ This repository contains a comprehensive dashboard for market analysis and insig
    npm install
    ```
 
-3. Create a `.env` file in the root directory with your Supabase credentials:
+3. Create a `.env` file in the root directory with your credentials:
    ```
+   # Supabase Configuration
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   
+   # Backend API Configuration
+   VITE_API_BASE_URL=https://osbackend-zl1h.onrender.com
    ```
 
 ### Running the Application
