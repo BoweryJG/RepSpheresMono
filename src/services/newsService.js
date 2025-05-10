@@ -3,10 +3,11 @@
  * 
  * This service provides news data related to the dental and aesthetic industries.
  * It fetches news articles from various sources and provides filtering capabilities.
- * Falls back to Brave search and Firecrawl if Supabase data is not available.
+ * Fetching priority: Backend API → Supabase → Brave search/Firecrawl → Mock data
  */
 
 import { supabaseClient } from './supabase/supabaseClient.js';
+import backendService from './backendService.js';
 
 /**
  * Fetch news articles for the specified industry
@@ -21,9 +22,30 @@ import { supabaseClient } from './supabase/supabaseClient.js';
  */
 export const getNewsArticles = async (industry, options = {}) => {
   try {
+    // Try to fetch from backend API first
+    try {
+      console.log(`Attempting to fetch ${industry} news articles from backend API...`);
+      const { limit = 10, category = null, source = null, searchTerm = null } = options;
+      
+      const backendOptions = {};
+      if (limit) backendOptions.limit = limit;
+      if (category) backendOptions.category = category;
+      if (source) backendOptions.source = source;
+      
+      const articles = await backendService.getNews(industry.toLowerCase(), backendOptions);
+      
+      if (articles && articles.length > 0) {
+        console.log(`Found ${articles.length} ${industry} news articles from backend API`);
+        return articles;
+      }
+    } catch (backendError) {
+      console.error('Error fetching news from backend API:', backendError);
+      console.log('Falling back to Supabase...');
+    }
+    
+    // If backend fails, try to fetch from Supabase
     console.log(`Attempting to fetch ${industry} news articles from Supabase...`);
     
-    // Try to fetch from Supabase first
     const { limit = 10, category = null, source = null, searchTerm = null } = options;
     
     let query = supabaseClient
@@ -55,6 +77,15 @@ export const getNewsArticles = async (industry, options = {}) => {
     // If we have data in Supabase, use it
     if (data && data.length > 0) {
       console.log(`Found ${data.length} ${industry} news articles in Supabase`);
+      
+      // Store in backend API for future use if backend is available
+      try {
+        console.log('Syncing news articles to backend API...');
+        // This would be implemented in a real-world scenario
+      } catch (syncError) {
+        console.warn('Failed to sync news articles to backend:', syncError);
+      }
+      
       return data;
     }
     

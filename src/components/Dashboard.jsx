@@ -55,7 +55,7 @@ import OpenDataBadge from './ui/OpenDataBadge';
 import DashboardHeader from './ui/DashboardHeader';
 import DashboardTicker from './ui/DashboardTicker';
 
-export default function Dashboard({ mcpEnabled = false }) {
+export default function Dashboard({ mcpEnabled = false, backendConnected = false }) {
   const theme = useTheme();
   
   const { darkMode, toggleTheme } = useThemeMode();
@@ -279,6 +279,18 @@ export default function Dashboard({ mcpEnabled = false }) {
                 icon={<CloudDoneIcon />}
                 label="MCP Connected"
                 color="success"
+                size="small"
+                variant="outlined"
+              />
+            </Tooltip>
+          )}
+          
+          {backendConnected && (
+            <Tooltip title="Connected to backend API">
+              <Chip
+                icon={<CloudDoneIcon />}
+                label="Backend Connected"
+                color="primary"
                 size="small"
                 variant="outlined"
               />

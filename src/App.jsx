@@ -7,12 +7,14 @@ import { useEffect, useState } from 'react';
 import { supabaseDataService } from './services/supabase/supabaseDataService';
 import { mcpSupabaseService } from './services/supabase/mcpSupabaseService';
 import { Alert, Snackbar } from '@mui/material';
+import apiService from './services/apiService';
 
 function App({ initializationError = false }) {
   const [mcpInitialized, setMcpInitialized] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
 
-  // Initialize Supabase data service when the app loads
+  // Initialize services when the app loads
   useEffect(() => {
     const initializeServices = async () => {
       try {
@@ -32,6 +34,36 @@ function App({ initializationError = false }) {
           setNotification({
             open: true,
             message: 'Failed to connect to Supabase: ' + supabaseResult.error,
+            severity: 'error'
+          });
+        }
+        
+        // Check backend API connection
+        try {
+          console.log('Checking backend API connection...');
+          const backendConnected = await apiService.checkConnection();
+          
+          if (backendConnected) {
+            console.log('Backend API connection established successfully');
+            setBackendConnected(true);
+            setNotification({
+              open: true,
+              message: 'Connected to backend API successfully!',
+              severity: 'success'
+            });
+          } else {
+            console.error('Failed to connect to backend API');
+            setNotification({
+              open: true,
+              message: 'Failed to connect to backend API',
+              severity: 'error'
+            });
+          }
+        } catch (backendError) {
+          console.error('Backend API connection error:', backendError);
+          setNotification({
+            open: true,
+            message: 'Error connecting to backend API: ' + backendError.message,
             severity: 'error'
           });
         }
@@ -89,7 +121,7 @@ function App({ initializationError = false }) {
       
       <Routes>
         {/* Dashboard Routes */}
-        <Route path="/dashboard/*" element={<Dashboard mcpEnabled={mcpInitialized} />} />
+        <Route path="/dashboard/*" element={<Dashboard mcpEnabled={mcpInitialized} backendConnected={backendConnected} />} />
         
         {/* Supabase Dashboard Route - Primary route for Supabase data */}
         <Route path="/dashboard-supabase/*" element={<DashboardSupabase />} />
