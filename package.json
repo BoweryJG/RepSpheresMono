@@ -8,6 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "load-data": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js",
+    "load-procedures": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/runDataLoader.mjs",
+    "load-direct": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/runDirectDataLoader.js",
+    "debug-supabase": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/debugDataLoader.js",
+    "setup-schema": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/setupSchema.js",
+    "verify-data": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/verifyData.js",
+    "supabase-full-process": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/runFullDataProcess.js",
     "start-mcp": "node start-mcp-server.js",
     "dev-with-mcp": "concurrently \"npm run start-mcp\" \"npm run dev\""
   },
