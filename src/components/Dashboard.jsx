@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material';
 
-import { useThemeMode } from '../services/theme/ThemeContext';
+import { useIndustryTheme } from '../services/theme/IndustryThemeContext';
 import { useNavigate } from 'react-router-dom';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -62,9 +62,9 @@ import { aestheticProcedures as staticAestheticProcedures, aestheticCategories a
 export default function Dashboard({ mcpEnabled = false, backendConnected = false }) {
   const theme = useTheme();
   
-  const { darkMode, toggleTheme } = useThemeMode();
+  const { industry, changeIndustryTheme } = useIndustryTheme();
   const navigate = useNavigate();
-  const [isDental, setIsDental] = useState(true);
+  const isDental = industry === 'dental';
   const [tabValue, setTabValue] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -74,7 +74,8 @@ export default function Dashboard({ mcpEnabled = false, backendConnected = false
   
   // Handle industry toggle switch
   const handleIndustryChange = () => {
-    setIsDental(!isDental);
+    const newIndustry = isDental ? 'aesthetic' : 'dental';
+    changeIndustryTheme(newIndustry);
     setCategoryFilter('All'); // Reset category filter when changing industries
   };
   
@@ -271,9 +272,16 @@ export default function Dashboard({ mcpEnabled = false, backendConnected = false
             }
             label={isDental ? "Switch to Aesthetic" : "Switch to Dental"}
           />
-          <Tooltip title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
-            <IconButton onClick={toggleTheme} color="primary">
-              {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+          <Tooltip title="Random Cosmic Theme">
+            <IconButton 
+              onClick={() => changeIndustryTheme('random')} 
+              color="primary"
+              sx={{ 
+                border: industry === 'random' ? '2px solid' : 'none',
+                borderColor: 'primary.main'
+              }}
+            >
+              <Brightness7Icon />
             </IconButton>
           </Tooltip>
           

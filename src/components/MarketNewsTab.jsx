@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useIndustryTheme } from '../services/theme/IndustryThemeContext';
 import { 
   Box, 
   Typography, 
@@ -48,8 +49,11 @@ import {
 } from '../services/imageService';
 import { getGeminiFallbackImageUrl } from '../services/geminiImageService';
 
-const MarketNewsTab = ({ isDental }) => {
-  const industry = isDental ? 'dental' : 'aesthetic';
+const MarketNewsTab = ({ isDental: propIsDental }) => {
+  const { industry } = useIndustryTheme();
+  // Use prop value as a fallback, but prioritize the context value
+  const isDental = propIsDental !== undefined ? propIsDental : industry === 'dental';
+  const currentIndustry = isDental ? 'dental' : 'aesthetic';
   
   // State variables
   const [loading, setLoading] = useState(true);
@@ -80,12 +84,12 @@ const MarketNewsTab = ({ isDental }) => {
           trendingTopicsData,
           upcomingEventsData
         ] = await Promise.all([
-          getNewsArticles(industry),
-          getFeaturedNewsArticles(industry),
-          getNewsCategories(industry),
-          getNewsSources(industry),
-          getTrendingTopics(industry),
-          getUpcomingEvents(industry)
+          getNewsArticles(currentIndustry),
+          getFeaturedNewsArticles(currentIndustry),
+          getNewsCategories(currentIndustry),
+          getNewsSources(currentIndustry),
+          getTrendingTopics(currentIndustry),
+          getUpcomingEvents(currentIndustry)
         ]);
         
         console.log('Fetched news articles:', articlesData.map(a => ({ id: a.id, image_url: a.image_url })));
@@ -126,7 +130,7 @@ const MarketNewsTab = ({ isDental }) => {
     setSelectedSource('All');
     setSearchTerm('');
     setActiveTab(0);
-  }, [industry]);
+  }, [currentIndustry]);
   
   // Handle search input change
   const handleSearchChange = (event) => {

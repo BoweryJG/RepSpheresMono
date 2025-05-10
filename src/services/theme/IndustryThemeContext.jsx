@@ -7,20 +7,25 @@ const IndustryThemeContext = createContext();
 
 // Industry theme provider component
 export const IndustryThemeProvider = ({ children }) => {
-  // Check if industry preference is stored in localStorage
+  // Check if preferences are stored in localStorage
   const storedIndustry = localStorage.getItem('industryTheme');
+  const storedVisualMode = localStorage.getItem('visualMode');
   
-  // Initialize state with stored preference or default to 'dental'
+  // Initialize states with stored preferences or defaults
   const [industry, setIndustry] = useState(
     storedIndustry || 'dental'
   );
   
-  // Create theme based on industry
-  const theme = getThemeByIndustry(industry);
+  const [visualMode, setVisualMode] = useState(
+    storedVisualMode || 'default'
+  );
+  
+  // Create theme based on industry and visual mode
+  const theme = getThemeByIndustry(industry, visualMode);
   
   // Function to change industry theme
   const changeIndustryTheme = (newIndustry) => {
-    if (['dental', 'aesthetic', 'random'].includes(newIndustry)) {
+    if (['dental', 'aesthetic'].includes(newIndustry)) {
       setIndustry(newIndustry);
     } else {
       console.warn(`Invalid industry theme: ${newIndustry}. Using default.`);
@@ -28,13 +33,28 @@ export const IndustryThemeProvider = ({ children }) => {
     }
   };
   
-  // Store industry preference in localStorage when it changes
+  // Function to toggle cosmic visual mode
+  const toggleCosmicMode = () => {
+    setVisualMode(prev => prev === 'default' ? 'cosmic' : 'default');
+  };
+  
+  // Store preferences in localStorage when they change
   useEffect(() => {
     localStorage.setItem('industryTheme', industry);
   }, [industry]);
   
+  useEffect(() => {
+    localStorage.setItem('visualMode', visualMode);
+  }, [visualMode]);
+  
   return (
-    <IndustryThemeContext.Provider value={{ industry, changeIndustryTheme }}>
+    <IndustryThemeContext.Provider value={{ 
+      industry, 
+      changeIndustryTheme, 
+      visualMode, 
+      toggleCosmicMode,
+      isCosmicMode: visualMode === 'cosmic'
+    }}>
       <MuiThemeProvider theme={theme}>
         {children}
       </MuiThemeProvider>

@@ -88,10 +88,10 @@ const loadCategories = async () => {
   // Upsert aesthetic categories
   for (const category of aestheticCategories) {
     const { error } = await supabase
-      .from('categories')
+      .from('aesthetic_categories')
       .upsert(
-        { industry: 'aesthetic', category_label: category, position: 0 },
-        { onConflict: ['industry', 'category_label'] }
+        { name: category },
+        { onConflict: 'name' }
       );
     if (error) throw error;
   }
@@ -137,16 +137,15 @@ const loadProcedures = async () => {
   
   // Get category IDs for aesthetic procedures
   const { data: aestheticCategoryData, error: aestheticCategoryError } = await supabase
-    .from('categories')
-    .select('id, category_label')
-    .eq('industry', 'aesthetic');
+    .from('aesthetic_categories')
+    .select('id, name');
   
   if (aestheticCategoryError) throw aestheticCategoryError;
   
   // Create a mapping of category names to IDs
   const aestheticCategoryMap = {};
   aestheticCategoryData.forEach(category => {
-    aestheticCategoryMap[category.category_label] = category.id;
+    aestheticCategoryMap[category.name] = category.id;
   });
   
   // Insert aesthetic procedures
@@ -491,7 +490,7 @@ const loadCompaniesData = async () => {
       .from('companies')
       .upsert({
         name: company.name,
-        industry: 'Dental',
+        industry: 'dental',
         description: company.description,
         website: company.website,
         headquarters: company.headquarters,
@@ -516,7 +515,7 @@ const loadCompaniesData = async () => {
       .from('companies')
       .upsert({
         name: company.name,
-        industry: 'Aesthetic',
+        industry: 'aesthetic',
         description: company.description,
         website: company.website,
         headquarters: company.headquarters,
