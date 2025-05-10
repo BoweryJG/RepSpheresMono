@@ -29,28 +29,21 @@ class SupabaseDataService {
       console.log('Setting up Supabase schema in browser environment...');
       
       // In browser environments, we'll use a simplified approach to check table existence
-      // instead of trying to run a Node.js child process
+      // No exec or child_process available in browser
       
-      try {
-        // Check if news_articles table exists as a simple test
-        const { count, error } = await supabase
-          .from('news_articles')
-          .select('*', { count: 'exact', head: true });
-          
-        if (error) {
-          console.warn('Schema might not be fully set up:', error.message);
-          // Continue anyway - we'll still try to use the tables that do exist
-        } else {
-          console.log('Schema appears to be already set up.');
-        }
+      // Check if news_articles table exists as a simple test
+      const { count, error } = await supabase
+        .from('news_articles')
+        .select('*', { count: 'exact', head: true });
         
-        return true;
-      } catch (tableError) {
-        console.warn('Error checking tables, continuing anyway:', tableError);
-        // Even if there's an error checking tables, we'll continue
-        // This allows the app to work with tables that do exist
-        return true;
+      if (error) {
+        console.warn('Schema might not be fully set up:', error.message);
+        // Continue anyway - we'll still try to use the tables that do exist
+      } else {
+        console.log('Schema appears to be already set up.');
       }
+      
+      return true;
     } catch (error) {
       console.error('Error during schema setup:', error);
       // Don't throw the error - return success anyway to allow the app to continue

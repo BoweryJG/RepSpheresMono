@@ -231,9 +231,9 @@ const MarketNewsTab = ({ isDental }) => {
                     src={getReliableImageUrl(article.image_url, article, industry)}
                     alt={article.title}
                     onError={(e) => {
-                      console.log('Image failed to load, prioritizing high-quality replacement for:', article.title);
+                      console.log('Featured image failed to load for:', article.title);
                       
-                      // First, set a temporary placeholder while we get premium image
+                      // First, set a reliable placeholder while we get premium image
                       const tempPlaceholder = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80';
                       e.target.src = tempPlaceholder;
                       
@@ -243,45 +243,94 @@ const MarketNewsTab = ({ isDental }) => {
                           // Use a timestamp to ensure we get a unique image
                           const uniqueTimestamp = Date.now();
                           
-                          // Get premium Gemini image
+                          // Get premium Gemini image with unique timestamp
                           const geminiUrl = await getGeminiFallbackImageUrl(article, industry);
                           if (geminiUrl) {
-                            console.log('Using Gemini-generated premium image for:', article.title);
+                            console.log('Using Gemini-generated image for:', article.title);
                             
-                            // Preload to validate
+                            // Pre-validate the image before showing
                             const img = new Image();
+                            
+                            // Set a timeout to handle stalled loads
+                            const imageTimeout = setTimeout(() => {
+                              console.log('Gemini image load timed out, using fallback for:', article.title);
+                              img.onerror(new Error('Timeout'));
+                            }, 5000);
+                            
                             img.onload = () => {
+                              clearTimeout(imageTimeout);
                               // Apply with fade-in effect
                               e.target.style.transition = 'opacity 0.5s ease-in-out';
                               e.target.style.opacity = 0;
                               setTimeout(() => {
-                                e.target.src = geminiUrl;
+                                e.target.src = `${geminiUrl}&t=${uniqueTimestamp}`;
                                 e.target.style.opacity = 1;
                               }, 100);
                             };
                             
                             // If image fails, use premium fallback collection
                             img.onerror = () => {
+                              clearTimeout(imageTimeout);
                               console.log('Gemini image failed to load, using premium collection for:', article.title);
-                              // Use curated premium collection as fallback with industry/category keywords
-                              const premiumCollectionId = '3694365'; // Premium editorial collection
-                              const premiumKeywords = encodeURIComponent(`premium,${industry},${article.category}`);
-                              const fallbackUrl = `https://source.unsplash.com/collection/${premiumCollectionId}/1600x900/?${premiumKeywords}&_=${uniqueTimestamp}`;
-                              e.target.src = fallbackUrl;
+                              
+                              // Use category-specific backup image
+                              const categoryBackups = getBackupImagesForCategory(article.category || 'Business', industry);
+                              const backupIndex = getRotationIndex(article.title, categoryBackups.length);
+                              const categoryBackup = categoryBackups[backupIndex];
+                              
+                              if (categoryBackup) {
+                                console.log('Using category backup image:', categoryBackup);
+                                // Apply with fade effect
+                                e.target.style.transition = 'opacity 0.5s ease-in-out';
+                                e.target.style.opacity = 0;
+                                setTimeout(() => {
+                                  e.target.src = categoryBackup;
+                                  e.target.style.opacity = 1;
+                                }, 100);
+                              } else {
+                                // Final fallback - use premium editorial collection
+                                const premiumCollectionId = '3694365'; // Premium editorial collection
+                                const premiumKeywords = encodeURIComponent(`premium,${industry},${article.category || ''}`);
+                                const fallbackUrl = `https://source.unsplash.com/collection/${premiumCollectionId}/1600x900/?${premiumKeywords}&_=${uniqueTimestamp}`;
+                                
+                                e.target.style.transition = 'opacity 0.5s ease-in-out';
+                                e.target.style.opacity = 0;
+                                setTimeout(() => {
+                                  e.target.src = fallbackUrl;
+                                  e.target.style.opacity = 1;
+                                }, 100);
+                              }
                             };
                             
-                            img.src = geminiUrl;
+                            // Initiate image loading with unique timestamp
+                            img.src = `${geminiUrl}&t=${uniqueTimestamp}`;
+                          } else {
+                            throw new Error('No Gemini URL returned');
                           }
                         } catch (error) {
                           console.error('Premium image loading error:', error);
-                          // Final fallback - always use a curated professional collection
-                          const fallbackCollectionId = '1358248'; // Professional editorial collection
-                          e.target.src = `https://source.unsplash.com/collection/${fallbackCollectionId}/1600x900?_=${Date.now()}`;
+                          
+                          // Get category-specific backup image
+                          const categoryBackup = getDefaultCategoryImage(article.category || 'Business', industry);
+                          
+                          if (categoryBackup) {
+                            console.log('Using default category image:', categoryBackup);
+                            e.target.src = categoryBackup;
+                          } else {
+                            // Final fallback - always use a curated professional collection
+                            console.log('Using ultimate fallback professional collection');
+                            const fallbackCollectionId = '1358248'; // Professional editorial collection
+                            e.target.src = `https://source.unsplash.com/collection/${fallbackCollectionId}/1600x900?_=${Date.now()}`;
+                          }
                         }
                       };
                       
-                      // Start loading premium image immediately
-                      loadPremiumImage();
+                      // Start loading premium image immediately and catch any unexpected errors
+                      loadPremiumImage().catch(err => {
+                        console.error('Unhandled error in image loading:', err);
+                        // Absolute fallback for any unexpected error
+                        e.target.src = getDefaultIndustryImage(industry);
+                      });
                     }}
                   />
                   <CardContent sx={{ flexGrow: 1 }}>
@@ -403,9 +452,9 @@ const MarketNewsTab = ({ isDental }) => {
                   src={getReliableImageUrl(article.image_url, article, industry)}
                   alt={article.title}
                   onError={(e) => {
-                    console.log('Image failed to load, prioritizing high-quality replacement for:', article.title);
+                    console.log('Article image failed to load for:', article.title);
                     
-                    // First, set a temporary placeholder while we get premium image
+                    // First, set a reliable placeholder while we get premium image
                     const tempPlaceholder = 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80';
                     e.target.src = tempPlaceholder;
                     
@@ -415,45 +464,94 @@ const MarketNewsTab = ({ isDental }) => {
                         // Use a timestamp to ensure we get a unique image
                         const uniqueTimestamp = Date.now();
                         
-                        // Get premium Gemini image
+                        // Get premium Gemini image with unique timestamp
                         const geminiUrl = await getGeminiFallbackImageUrl(article, industry);
                         if (geminiUrl) {
-                          console.log('Using Gemini-generated premium image for:', article.title);
+                          console.log('Using Gemini-generated image for:', article.title);
                           
-                          // Preload to validate
+                          // Pre-validate the image before showing
                           const img = new Image();
+                          
+                          // Set a timeout to handle stalled loads
+                          const imageTimeout = setTimeout(() => {
+                            console.log('Gemini image load timed out, using fallback for:', article.title);
+                            img.onerror(new Error('Timeout'));
+                          }, 5000);
+                          
                           img.onload = () => {
+                            clearTimeout(imageTimeout);
                             // Apply with fade-in effect
                             e.target.style.transition = 'opacity 0.5s ease-in-out';
                             e.target.style.opacity = 0;
                             setTimeout(() => {
-                              e.target.src = geminiUrl;
+                              e.target.src = `${geminiUrl}&t=${uniqueTimestamp}`;
                               e.target.style.opacity = 1;
                             }, 100);
                           };
                           
                           // If image fails, use premium fallback collection
                           img.onerror = () => {
+                            clearTimeout(imageTimeout);
                             console.log('Gemini image failed to load, using premium collection for:', article.title);
-                            // Use curated premium collection as fallback with industry/category keywords
-                            const premiumCollectionId = '3694365'; // Premium editorial collection
-                            const premiumKeywords = encodeURIComponent(`premium,${industry},${article.category}`);
-                            const fallbackUrl = `https://source.unsplash.com/collection/${premiumCollectionId}/1600x900/?${premiumKeywords}&_=${uniqueTimestamp}`;
-                            e.target.src = fallbackUrl;
+                            
+                            // Use category-specific backup image
+                            const categoryBackups = getBackupImagesForCategory(article.category || 'Business', industry);
+                            const backupIndex = getRotationIndex(article.title, categoryBackups.length);
+                            const categoryBackup = categoryBackups[backupIndex];
+                            
+                            if (categoryBackup) {
+                              console.log('Using category backup image:', categoryBackup);
+                              // Apply with fade effect
+                              e.target.style.transition = 'opacity 0.5s ease-in-out';
+                              e.target.style.opacity = 0;
+                              setTimeout(() => {
+                                e.target.src = categoryBackup;
+                                e.target.style.opacity = 1;
+                              }, 100);
+                            } else {
+                              // Final fallback - use premium editorial collection
+                              const premiumCollectionId = '3694365'; // Premium editorial collection
+                              const premiumKeywords = encodeURIComponent(`premium,${industry},${article.category || ''}`);
+                              const fallbackUrl = `https://source.unsplash.com/collection/${premiumCollectionId}/1600x900/?${premiumKeywords}&_=${uniqueTimestamp}`;
+                              
+                              e.target.style.transition = 'opacity 0.5s ease-in-out';
+                              e.target.style.opacity = 0;
+                              setTimeout(() => {
+                                e.target.src = fallbackUrl;
+                                e.target.style.opacity = 1;
+                              }, 100);
+                            }
                           };
                           
-                          img.src = geminiUrl;
+                          // Initiate image loading with unique timestamp
+                          img.src = `${geminiUrl}&t=${uniqueTimestamp}`;
+                        } else {
+                          throw new Error('No Gemini URL returned');
                         }
                       } catch (error) {
                         console.error('Premium image loading error:', error);
-                        // Final fallback - always use a curated professional collection
-                        const fallbackCollectionId = '1358248'; // Professional editorial collection
-                        e.target.src = `https://source.unsplash.com/collection/${fallbackCollectionId}/1600x900?_=${Date.now()}`;
+                        
+                        // Get category-specific backup image
+                        const categoryBackup = getDefaultCategoryImage(article.category || 'Business', industry);
+                        
+                        if (categoryBackup) {
+                          console.log('Using default category image:', categoryBackup);
+                          e.target.src = categoryBackup;
+                        } else {
+                          // Final fallback - always use a curated professional collection
+                          console.log('Using ultimate fallback professional collection');
+                          const fallbackCollectionId = '1358248'; // Professional editorial collection
+                          e.target.src = `https://source.unsplash.com/collection/${fallbackCollectionId}/1600x900?_=${Date.now()}`;
+                        }
                       }
                     };
                     
-                    // Start loading premium image immediately
-                    loadPremiumImage();
+                    // Start loading premium image immediately and catch any unexpected errors
+                    loadPremiumImage().catch(err => {
+                      console.error('Unhandled error in image loading:', err);
+                      // Absolute fallback for any unexpected error
+                      e.target.src = getDefaultIndustryImage(industry);
+                    });
                   }}
               />
               <CardContent sx={{ flex: '1 0 auto' }}>
