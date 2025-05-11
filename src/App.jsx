@@ -44,63 +44,8 @@ const ThemeSwitcher = () => {
 function AppContent({ initializationError = false }) {
   const [backendConnected, setBackendConnected] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
-  const [authenticated, setAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [user, setUser] = useState(null);
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        setAuthLoading(true);
-        
-        // Check for OAuth redirects first
-        if (window.location.hash) {
-          console.log('OAuth redirect detected');
-          const { data, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            throw error;
-          }
-          
-          if (data && data.session) {
-            setAuthenticated(true);
-            setUser(data.session.user);
-            return;
-          }
-        }
-        
-        // Regular authentication check
-        const isAuth = await isAuthenticated();
-        setAuthenticated(isAuth);
-        
-        if (isAuth) {
-          const userResult = await getCurrentUser();
-          if (userResult.success) {
-            setUser(userResult.user);
-          }
-        }
-      } catch (error) {
-        console.error("Authentication check failed:", error);
-        setAuthenticated(false);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-
-  const handleLoginSuccess = (loginUser) => {
-    setAuthenticated(true);
-    setUser(loginUser);
-  };
-  
-  const handleLogout = async () => {
-    await signOut();
-    setAuthenticated(false);
-    setUser(null);
-  };
+  // Authentication is now bypassed - always authenticated with a default user
+  const [user, setUser] = useState({ id: 'default-user', email: 'user@example.com' });
 
   // Initialize services when the app loads
   useEffect(() => {
@@ -188,40 +133,19 @@ function AppContent({ initializationError = false }) {
         </Alert>
       </Snackbar>
       
-      {authLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress size={60} />
-        </Box>
-      ) : authenticated ? (
-        <>
-          {/* Add logout button */}
-          <Box sx={{ position: 'fixed', top: 8, left: 16, zIndex: 9999 }}>
-            <Button 
-              onClick={handleLogout} 
-              variant="outlined" 
-              color="secondary"
-            >
-              Logout
-            </Button>
-          </Box>
-          
-          <Routes>
-            {/* Dashboard Routes */}
-            <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
-            
-            {/* Supabase Dashboard Route - Primary route for Supabase data */}
-            <Route path="/dashboard/*" element={<DashboardSupabase user={user} />} />
-            
-            {/* Redirect root to dashboard by default */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Catch all - redirect to dashboard */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </>
-      ) : (
-        <Login onLoginSuccess={handleLoginSuccess} />
-      )}
+      <Routes>
+        {/* Dashboard Routes */}
+        <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
+        
+        {/* Supabase Dashboard Route - Primary route for Supabase data */}
+        <Route path="/dashboard/*" element={<DashboardSupabase user={user} />} />
+        
+        {/* Redirect root to dashboard by default */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Catch all - redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </>
   );
 }
