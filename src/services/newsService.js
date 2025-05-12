@@ -3,7 +3,7 @@
  * 
  * This service provides news data related to the dental and aesthetic industries.
  * It fetches news articles from various sources and provides filtering capabilities.
- * Fetching priority: External sources (Brave search/Firecrawl) → Supabase → Mock data
+ * Fetching priority: Supabase → External sources (Brave search/Firecrawl) → Mock data
  */
 
 import { supabaseClient } from './supabase/supabaseClient.js';
@@ -20,39 +20,64 @@ import { supabaseClient } from './supabase/supabaseClient.js';
  * @returns {Promise<Array>} - Array of news article objects
  */
 export const getNewsArticles = async (industry, options = {}) => {
-  // First, attempt to fetch live via Brave Search / Firecrawl
-  try {
-    console.log(`Fetching ${industry} news articles from external sources...`);
-    const external = await fetchNewsFromExternalSources(industry, options);
-    if (external && external.length > 0) {
-      console.log(`Found ${external.length} ${industry} news articles externally`);
-      return external;
-    }
-  } catch (extErr) {
-    console.error('Error fetching news from external sources:', extErr);
-  }
-  // Fallback to Supabase storage
+  // First, attempt to fetch from Supabase
   try {
     console.log(`Fetching ${industry} news articles from Supabase...`);
     const { limit = 10, category = null, source = null, searchTerm = null } = options;
+    
+    // Get articles from the past week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoStr = oneWeekAgo.toISOString();
+    
     let query = supabaseClient
       .from('news_articles')
       .select('*')
       .eq('industry', industry.toLowerCase())
+      .gte('published_date', oneWeekAgoStr)
       .order('published_date', { ascending: false })
       .limit(limit);
+    
     if (category) query = query.eq('category', category);
     if (source) query = query.eq('source', source);
     if (searchTerm) query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+    
     const { data, error } = await query;
     if (error) throw error;
+    
     if (data && data.length > 0) {
       console.log(`Found ${data.length} ${industry} news articles in Supabase`);
       return data;
     }
+    
+    // If no data in Supabase or not enough articles, fetch from external sources
+    console.log(`Not enough recent ${industry} news articles in Supabase, fetching from external sources...`);
+    const external = await fetchNewsFromExternalSources(industry, {
+      ...options,
+      limit: limit - (data?.length || 0) // Only fetch what we need to reach the limit
+    });
+    
+    if (external && external.length > 0) {
+      console.log(`Found ${external.length} ${industry} news articles externally`);
+      // Combine with any existing Supabase data
+      return [...(data || []), ...external];
+    }
   } catch (supErr) {
     console.error('Error fetching news from Supabase:', supErr);
+    
+    // If Supabase fails, try external sources
+    try {
+      console.log(`Trying external sources after Supabase error...`);
+      const external = await fetchNewsFromExternalSources(industry, options);
+      if (external && external.length > 0) {
+        console.log(`Found ${external.length} ${industry} news articles externally`);
+        return external;
+      }
+    } catch (extErr) {
+      console.error('Error fetching news from external sources:', extErr);
+    }
   }
+  
   // Last resort: mock
   console.log(`No news found; generating mock ${industry} news...`);
   const { limit = 10, category = null, source = null } = options;
@@ -89,14 +114,26 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
       searchQuery += ` ${searchTerm}`;
     }
     
-    // Use Brave search to find news articles
-    const braveResults = await fetchFromBraveSearch(searchQuery, limit);
+    // Add time constraint to get only recent news (past week)
+    searchQuery += " past week";
+    
+    // Determine which service to use based on a random selection to alternate
+    const useFirecrawl = Math.random() > 0.5;
+    
+    let results = [];
+    if (useFirecrawl) {
+      console.log(`Using Firecrawl to search for: "${searchQuery}"`);
+      results = await searchWithFirecrawl(searchQuery, limit);
+    } else {
+      console.log(`Using Brave Search to search for: "${searchQuery}"`);
+      results = await fetchFromBraveSearch(searchQuery, limit);
+    }
     
     // Process the search results to extract article information
     const articles = [];
     const processedUrls = new Set(); // To avoid duplicates
     
-    for (const result of braveResults) {
+    for (const result of results) {
       // Skip if we've already processed this URL
       if (processedUrls.has(result.url)) continue;
       processedUrls.add(result.url);
@@ -113,6 +150,17 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
       // Determine the source from the URL or use the domain name
       const articleSource = determineSource(result.url);
       
+      // Ensure the article is from the past week
+      const publishedDate = articleDetails.published_date || new Date().toISOString();
+      const articleDate = new Date(publishedDate);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      if (articleDate < oneWeekAgo) {
+        console.log(`Skipping article older than one week: ${result.title}`);
+        continue;
+      }
+      
       // Create an article object with the data we have
       const article = {
         id: articles.length + 1,
@@ -121,7 +169,7 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
         content: articleDetails.content || result.description || '',
         image_url: articleDetails.image_url || result.image_url || '',
         url: result.url,
-        published_date: articleDetails.published_date || new Date().toISOString(),
+        published_date: publishedDate,
         author: articleDetails.author || 'Unknown',
         source: articleSource,
         category: articleCategory,
@@ -147,6 +195,53 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
     console.error('Error fetching news from external sources:', error);
     // Return mock data as a last resort
     return generateMockNewsArticles(industry, limit, category, source);
+  }
+};
+
+/**
+ * Search for news articles using Firecrawl
+ * @param {string} query - Search query
+ * @param {number} count - Number of results to return
+ * @returns {Promise<Array>} - Array of search results
+ */
+const searchWithFirecrawl = async (query, count = 10) => {
+  try {
+    console.log(`Making call to Firecrawl MCP for search: ${query}`);
+    
+    // Use the Firecrawl MCP search tool
+    const searchResult = await use_mcp_tool({
+      server_name: 'github.com/mendableai/firecrawl-mcp-server',
+      tool_name: 'firecrawl_search',
+      arguments: {
+        query: query,
+        limit: count,
+        scrapeOptions: {
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 5000
+        }
+      }
+    });
+    
+    if (!searchResult || !searchResult.results || searchResult.results.length === 0) {
+      throw new Error(`Firecrawl MCP returned no results for ${query}`);
+    }
+    
+    console.log(`Successfully found ${searchResult.results.length} results with Firecrawl MCP`);
+    
+    // Map to article format
+    return searchResult.results.map(item => ({
+      id: item.url,
+      title: item.title || 'Untitled',
+      url: item.url,
+      summary: item.description || '',
+      image_url: item.image || '',
+      source: determineSource(item.url),
+      published_date: item.published_date || new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error(`Error searching with Firecrawl MCP: ${error}`);
+    throw error;
   }
 };
 

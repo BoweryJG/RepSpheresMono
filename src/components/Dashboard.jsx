@@ -135,10 +135,11 @@ export default function Dashboard({ mcpEnabled = false, backendConnected = false
           supabaseDataService.getMetropolitanMarkets()
         ]);
         
-        setDentalProcedures(dentalProcs.length ? dentalProcs : staticDentalProcedures);
-        setAestheticProcedures(aestheticProcs.length ? aestheticProcs : staticAestheticProcedures);
-        setDentalCategories(dentalCats.length ? dentalCats : staticDentalCategories);
-        setAestheticCategories(aestheticCats.length ? aestheticCats : staticAestheticCategories);
+        // Set data directly from Supabase without fallbacks to static data
+        setDentalProcedures(dentalProcs);
+        setAestheticProcedures(aestheticProcs);
+        setDentalCategories(dentalCats);
+        setAestheticCategories(aestheticCats);
         setDentalMarketGrowth(dentalGrowth);
         setAestheticMarketGrowth(aestheticGrowth);
         setDentalDemographics(dentalDemo);

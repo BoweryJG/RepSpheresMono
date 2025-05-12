@@ -134,10 +134,7 @@ function AppContent({ initializationError = false }) {
       </Snackbar>
       
       <Routes>
-        {/* Dashboard Routes */}
-        <Route path="/dashboard-mock/*" element={<Dashboard mcpEnabled={false} backendConnected={backendConnected} />} />
-        
-        {/* Supabase Dashboard Route - Primary route for Supabase data */}
+        {/* Dashboard Routes - Using only Supabase data */}
         <Route path="/dashboard/*" element={<DashboardSupabase user={user} />} />
         
         {/* Redirect root to dashboard by default */}
