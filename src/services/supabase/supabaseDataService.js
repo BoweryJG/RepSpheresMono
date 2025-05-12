@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient.js';
 import { loadAllDataToSupabase, checkDataLoaded } from './dataLoader.js';
 import { getCurrentSession, signInWithEmail } from './supabaseAuth.js';
-import { runFullVerification, verifyTables } from './verifySupabaseData.js';
+import { runFullVerification, checkTables } from './verifySupabaseData.js';
 
 /**
  * Class to fetch market insight data from Supabase
@@ -98,7 +98,7 @@ class SupabaseDataService {
         await loadAllDataToSupabase();
         
         // Verify again after loading
-        const postLoadVerification = await verifyTables();
+        const postLoadVerification = await checkTables();
         if (!postLoadVerification.success) {
           console.warn('Some tables still missing after data load:', postLoadVerification.tables);
         }
