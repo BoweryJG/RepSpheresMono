@@ -6,17 +6,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import theme from './theme';
 
-import { ensureDataExists } from './services/dataRefreshService';
-
-// Initialize data refresh service to ensure we have real data in Supabase
-ensureDataExists().then(result => {
-  if (result.success) {
-    console.log('Data check completed successfully');
-  } else {
-    console.error('Error checking data:', result.error);
-  }
-});
-
 // Initialize React app
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
