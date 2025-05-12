@@ -97,7 +97,7 @@ async function testAuthentication() {
 /**
  * Check which tables exist and which are missing
  */
-async function checkTables() {
+export async function checkTables() { // Exported for external use
   console.log(colors.blue('\n📋 Checking required tables...'));
   
   try {
