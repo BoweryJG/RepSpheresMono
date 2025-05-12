@@ -1,25 +1,36 @@
 import { createClient } from '@supabase/supabase-js'
 
 /**
- * Safe environment variable getter optimized for browser environments
+ * Safe environment variable getter optimized for both browser and Node.js environments
  * 
  * @param {string} key - Environment variable key
  * @param {string} defaultValue - Default value if not found
  * @returns {string} - The environment variable value or default
  */
 const getEnv = (key, defaultValue = '') => {
-  // In browser context, we should only access Vite environment variables
+  // Check browser context (Vite)
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     if (import.meta.env[key]) {
       return import.meta.env[key];
     }
   }
   
-  // Note: We no longer try to access process.env directly in browser context
-  // as it's handled by the Vite define configuration
+  // Check Node.js environment
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env[key]) {
+      return process.env[key];
+    }
+  }
   
-  if (!defaultValue && import.meta.env.PROD) {
-    console.warn(`[Supabase] Missing configuration for ${key} in production environment`);
+  // Safe warning that works in both environments
+  if (!defaultValue) {
+    const isProduction = 
+      (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
+      (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
+    
+    if (isProduction) {
+      console.warn(`[Supabase] Missing configuration for ${key} in production environment`);
+    }
   }
   
   return defaultValue || '';
@@ -36,7 +47,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Log environment info for debugging
-const isProduction = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true;
+const isProduction = 
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
+  (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
 console.log(`[Supabase] Initializing in ${isProduction ? 'production' : 'development'} environment`);
 if (supabaseUrl) {
   // Only show partial URL for security
