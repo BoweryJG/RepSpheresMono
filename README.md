@@ -59,13 +59,53 @@ npm run dev-with-mcp
 
 This will start both the MCP server and the development server concurrently.
 
-### Loading Initial Data
+### Data Management
+
+#### Loading Initial Data
 
 To populate your Supabase database with initial data:
 
 ```
 npm run load-data
 ```
+
+#### Refreshing Supabase Data
+
+To ensure the application is using live data from Supabase (not mock data), you can refresh all Supabase tables with:
+
+```
+npm run refresh-supabase
+```
+
+Or use the npm script:
+
+```
+npm run refresh-all-data
+```
+
+Or run the shell script directly:
+
+```
+./refresh-all-data.sh
+```
+
+These scripts will:
+1. Clear all existing data in Supabase tables
+2. Reload fresh data from source files
+3. Ensure all dental and aesthetic procedures, companies, and market data are properly populated
+4. Fetch and populate news articles from external sources
+
+Use these commands whenever you need to reset the database or ensure you're working with the latest data. The application will now use live data from Supabase for:
+- Dental procedures
+- Aesthetic procedures
+- Dental companies
+- Aesthetic companies
+- Market growth data
+- Demographics data
+- Metropolitan markets
+- News articles
+
+No mock data will be used after running these refresh scripts.
 
 ## MCP Integration
 

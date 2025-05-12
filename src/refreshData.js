@@ -1,5 +1,6 @@
 import { supabase } from './services/supabase/supabaseClient';
 import { loadAllDataToSupabase } from './services/supabase/dataLoader';
+import { populateAllNewsArticles } from './services/supabase/populateNewsArticles';
 
 /**
  * Refresh all data in Supabase
@@ -16,6 +17,11 @@ export const refreshAllData = async () => {
     // Reload all data 
     console.log('Reloading all data...');
     const result = await loadAllDataToSupabase();
+    
+    // Populate news articles from external sources
+    console.log('Populating news articles from external sources...');
+    const newsResult = await populateAllNewsArticles();
+    console.log(`Populated ${Object.values(newsResult).flat().length} news articles`);
     
     console.log('Data refresh complete!', result);
     return { success: true, message: 'Data successfully refreshed!' };
@@ -48,7 +54,8 @@ const clearAllTables = async () => {
     'demographics_by_region',
     'gender_split_by_region',
     'top_providers',
-    'companies'
+    'companies',
+    'news_articles'
   ];
   
   for (const table of tables) {
