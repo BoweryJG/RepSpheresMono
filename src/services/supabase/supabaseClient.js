@@ -1,4 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+
+// Import dotenv for Node.js environments
+// This won't affect browser environments
+try {
+  if (typeof process !== 'undefined' && process.env) {
+    const dotenv = await import('dotenv');
+    dotenv.config();
+    console.log('[Supabase] Loaded environment variables from .env file');
+  }
+} catch (err) {
+  console.warn('[Supabase] Could not load dotenv:', err.message);
+}
 
 /**
  * Safe environment variable getter optimized for both browser and Node.js environments
@@ -8,17 +20,23 @@ import { createClient } from '@supabase/supabase-js'
  * @returns {string} - The environment variable value or default
  */
 const getEnv = (key, defaultValue = '') => {
+  // Check Node.js environment first (for Node scripts)
+  if (typeof process !== 'undefined' && process.env) {
+    // Check for direct environment variables (e.g. VITE_SUPABASE_URL)
+    if (process.env[key]) {
+      return process.env[key];
+    }
+    
+    // For Node.js scripts, also check without VITE_ prefix as fallback
+    if (key.startsWith('VITE_') && process.env[key.substring(5)]) {
+      return process.env[key.substring(5)];
+    }
+  }
+  
   // Check browser context (Vite)
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     if (import.meta.env[key]) {
       return import.meta.env[key];
-    }
-  }
-  
-  // Check Node.js environment
-  if (typeof process !== 'undefined' && process.env) {
-    if (process.env[key]) {
-      return process.env[key];
     }
   }
   
@@ -40,6 +58,13 @@ const getEnv = (key, defaultValue = '') => {
 // No default values provided to ensure we don't expose keys in code
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+// For Node.js scripts, log more detailed environment information
+if (typeof process !== 'undefined' && process.env) {
+  console.log('[Supabase] Environment check:');
+  console.log(`  - VITE_SUPABASE_URL: ${supabaseUrl ? '✅ Found' : '❌ Missing'}`);
+  console.log(`  - VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅ Found' : '❌ Missing'}`);
+}
 
 // Validate configuration
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -70,6 +95,11 @@ const createSafeSupabaseClient = () => {
     // Ensure we have valid string values for createClient with extreme safeguards
     const safeSupabaseUrl = String(supabaseUrl || '');
     const safeSupabaseAnonKey = String(supabaseAnonKey || '');
+    
+    // Verify we have actual values before creating client
+    if (!safeSupabaseUrl || safeSupabaseUrl === 'undefined' || !safeSupabaseAnonKey || safeSupabaseAnonKey === 'undefined') {
+      throw new Error(`Invalid Supabase configuration: URL=${safeSupabaseUrl ? 'present' : 'missing'}, Key=${safeSupabaseAnonKey ? 'present' : 'missing'}`);
+    }
     
     // Create the actual Supabase client
     const client = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
@@ -113,10 +143,17 @@ const createSafeSupabaseClient = () => {
             
             // If the result is a promise, add error handling
             if (result && typeof result.then === 'function') {
-              return result.catch(err => {
-                console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+              try {
+                return result.then(data => {
+                  return data;
+                }).catch(err => {
+                  console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+                  throw err;
+                });
+              } catch (err) {
+                console.error(`[Supabase] Error handling promise in ${String(prop)} method:`, err);
                 throw err;
-              });
+              }
             }
             
             return result;

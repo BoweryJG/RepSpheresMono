@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient';
+import { fileURLToPath } from 'url';
+import * as url from 'url';
 import { 
   dentalProcedures, 
   dentalCategories, 

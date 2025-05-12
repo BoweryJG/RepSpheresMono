@@ -1,275 +1,183 @@
-# Supabase Integration Fixes
+# Supabase Database Connection Troubleshooting Guide
 
-## Issues Fixed
+## Connection Issues
 
-1. **"process is not defined" error in browser**
-   - Error occurred when the Supabase client tried to access `process.env` in a browser environment
-   - This was causing the application to crash with `Uncaught ReferenceError: process is not defined`
+If you're experiencing connection issues with your Supabase database in the Market Insights application, follow this guide to diagnose and fix common problems.
 
-2. **API key exposure in client-side code**
-   - Default API keys were hardcoded in the client code, risking security exposure
-   - These should only be accessed via environment variables
+## Quick Diagnostics
 
-3. **"Cannot read properties of undefined (reading 'PROD')" in Node.js**
-   - Error occurred during Netlify build process when the Supabase client tried to access `import.meta.env.PROD` in a Node.js environment
-   - This was causing the build to fail with `TypeError: Cannot read properties of undefined (reading 'PROD')`
+Run these scripts to diagnose your Supabase connection issues:
 
-4. **"Cannot read properties of undefined (reading 'indexOf')" error**
-   - Error occurred when string operations were performed on potentially undefined values
-   - This was causing the application to crash with `Uncaught TypeError: Cannot read properties of undefined (reading 'indexOf')`
+```bash
+# Check if the Supabase project is accessible
+node src/services/supabase/checkProjectAvailability.js
 
-## Implemented Solutions
-
-### 1. Fixed process.env in Browser Environment
-
-Modified `vite.config.js` to properly handle Node.js environment objects in browser context:
-
-```js
-// Added process.env polyfill for browser environment with environment variables in all environments
-define: {
-  'process.env': JSON.stringify(Object.keys(env)
-    .filter(key => key.startsWith('VITE_'))
-    .reduce((obj, key) => {
-      obj[key] = env[key];
-      return obj;
-    }, {
-      // Always include NODE_ENV for libraries that might depend on it
-      NODE_ENV: mode
-    }))
-}
+# Run a complete database test including tables and RLS policies
+node src/services/supabase/nodeDatabaseTest.js
 ```
 
-This properly polyfills the `process.env` object in the browser context with the safe, client-side environment variables (those with the `VITE_` prefix) in both development and production environments.
+## Common Issues and Solutions
 
-### 1.1 Added Process Polyfill Plugin
+### 1. Environment Variable Issues
 
-Created a custom Vite plugin to ensure `process` is defined before any scripts run:
+Environment variables must be correctly configured in your `.env` file:
 
-```js
-// Custom plugin to ensure process is defined in browser environment
-const processPolyfillPlugin = () => {
-  return {
-    name: 'process-polyfill',
-    transformIndexHtml(html) {
-      // Add a script to define process before any other scripts run
-      return html.replace(
-        /<head>/,
-        `<head>
-        <script>
-          // Ensure process is defined in browser environment
-          window.process = window.process || {};
-          window.process.env = window.process.env || {};
-        </script>`
-      );
-    }
-  };
-};
+```
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-This plugin adds a script to the HTML head that ensures `process` and `process.env` are defined before any other scripts run, preventing the "process is not defined" error.
+Check for:
+- Missing or incorrect URL/Key
+- Typos in variable names
+- Extra spaces or quotes
+- Using the wrong key type (anon key vs service_role key)
 
-### 2. Enhanced Environment Variable Handling
+### 2. Row Level Security (RLS) Issues
 
-Updated `src/services/supabase/supabaseClient.js` to:
+When Row Level Security is enabled but no policies are defined, all access is denied. This is a common reason why data won't load even with correct credentials.
 
-1. Remove hardcoded API keys:
-   ```js
-   // REMOVED hardcoded defaults
-   const DEFAULT_SUPABASE_URL = '...'
-   const DEFAULT_ANON_KEY = '...'
-   ```
+**Fix RLS Policies:**
 
-2. Improve environment variable access strategy for both browser and Node.js environments:
-   ```js
-   const getEnv = (key, defaultValue = '') => {
-     // Check browser context (Vite)
-     if (typeof import.meta !== 'undefined' && import.meta.env) {
-       if (import.meta.env[key]) {
-         return import.meta.env[key];
-       }
-     }
-     
-     // Check Node.js environment
-     if (typeof process !== 'undefined' && process.env) {
-       if (process.env[key]) {
-         return process.env[key];
-       }
-     }
-     
-     // Safe warning that works in both environments
-     if (!defaultValue) {
-       const isProduction = 
-         (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
-         (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
-       
-       if (isProduction) {
-         console.warn(`[Supabase] Missing configuration for ${key} in production environment`);
-       }
-     }
-     
-     return defaultValue || '';
-   };
-   ```
-
-3. Made environment detection work in both browser and Node.js:
-   ```js
-   const isProduction = 
-     (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
-     (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
-   ```
-
-### 3. Added String Operation Safeguards
-
-Updated `src/services/supabase/supabaseClient.js` to add safeguards for string operations:
-
-1. Added type checking and conversion for URL display:
-   ```js
-   // Add safeguard for undefined or non-string values
-   const urlToDisplay = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
-   console.log(`[Supabase] Using URL: ${urlToDisplay.substring(0, 30)}...`);
-   ```
-
-2. Ensured valid string values for createClient:
-   ```js
-   // Ensure we have valid string values for createClient
-   const safeSupabaseUrl = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
-   const safeSupabaseAnonKey = typeof supabaseAnonKey === 'string' ? supabaseAnonKey : String(supabaseAnonKey || '');
-   
-   // Create Supabase client with explicit options and enhanced error handling
-   export const supabase = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
-     // ...
-   });
-   ```
-
-3. Added safeguards for URL operations in fetch:
-   ```js
-   global: {
-     headers: {
-       'x-application-name': 'market-insights-dashboard',
-       'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
-     },
-     // Add safeguards for string operations
-     fetch: (url, options) => {
-       // Ensure URL is a string before any operations are performed on it
-       const safeUrl = typeof url === 'string' ? url : String(url || '');
-       return fetch(safeUrl, options);
-     }
-   },
-   ```
-
-### 4. Added Robust Error Handling with JavaScript Proxy
-
-After finding that the global string operation safeguards weren't sufficient, we implemented a more robust solution using JavaScript Proxy to intercept all Supabase client method calls:
-
-```js
-// Create a safe wrapper around the Supabase client
-const createSafeSupabaseClient = () => {
-  try {
-    // Ensure we have valid string values for createClient with extreme safeguards
-    const safeSupabaseUrl = String(supabaseUrl || '');
-    const safeSupabaseAnonKey = String(supabaseAnonKey || '');
-    
-    // Create the actual Supabase client
-    const client = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      },
-      global: {
-        headers: {
-          'x-application-name': 'market-insights-dashboard',
-          'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
-        }
-      },
-      db: {
-        schema: 'public'
-      }
-    });
-    
-    // Create a proxy to intercept all method calls and add error handling
-    return new Proxy(client, {
-      get: function(target, prop) {
-        // Get the original property
-        const originalValue = target[prop];
-        
-        // If it's not a function, just return it
-        if (typeof originalValue !== 'function') {
-          return originalValue;
-        }
-        
-        // If it's a function, wrap it with error handling
-        return function(...args) {
-          try {
-            const result = originalValue.apply(target, args);
-            
-            // If the result is a promise, add error handling
-            if (result && typeof result.then === 'function') {
-              return result.catch(err => {
-                console.error(`[Supabase] Error in ${String(prop)} method:`, err);
-                throw err;
-              });
-            }
-            
-            return result;
-          } catch (err) {
-            console.error(`[Supabase] Error in ${String(prop)} method:`, err);
-            throw err;
-          }
-        };
-      }
-    });
-  } catch (err) {
-    console.error('[Supabase] Failed to create client:', err);
-    // Return a dummy client that won't throw errors
-    return {
-      from: () => ({ select: () => ({ data: null, error: { message: 'Client initialization failed' } }) }),
-      auth: { 
-        onAuthStateChange: (callback) => {
-          console.log('[Supabase] Auth state change listener registered on dummy client');
-          return { data: { subscription: { unsubscribe: () => {} } } };
-        }
-      }
-    };
-  }
-};
+```bash
+# Run the RLS policy setup script
+node src/services/supabase/runSetupRls.js
 ```
 
-This approach:
-1. Creates a JavaScript Proxy that intercepts all method calls to the Supabase client
-2. Adds try/catch blocks around every method call to prevent uncaught exceptions
-3. Adds special handling for Promise-based methods to catch async errors
-4. Provides a fallback dummy client if initialization fails completely
-5. Uses extreme string safeguards with String() constructor and nullish coalescing
+**Manual RLS Fix:**
 
-## Testing Results
+If the script isn't working, you can manually set this up in the Supabase SQL Editor:
 
-The application has been tested and:
+```sql
+-- Enable RLS on a table (if not already enabled)
+ALTER TABLE public.dental_procedures_simplified ENABLE ROW LEVEL SECURITY;
 
-1. The "process is not defined" error no longer occurs
-2. The "Cannot read properties of undefined (reading 'indexOf')" error no longer occurs
-3. Supabase initializes properly with the following console logs:
-   - `[Supabase] Initializing in production environment`
-   - `[Supabase] Using URL: https://cbopynuvhcymbumjnvay.s...`
-   - `[Supabase] Client initialized`
-   - `[Supabase] Auth state changed: INITIAL_SESSION`
-   - `[Supabase] Connection test successful`
-   - `[Safety] String operation safeguards installed`
+-- Create a policy allowing read access to everyone
+CREATE POLICY "dental_procedures_simplified_anon_select"
+ON public.dental_procedures_simplified
+FOR SELECT
+TO authenticated, anon
+USING (true);
 
-## Best Practices for Environment Variables in Vite
+-- Repeat for other tables, changing the table name
+```
 
-1. **Client-Side Variables**: 
-   - Always prefix with `VITE_` (e.g., `VITE_SUPABASE_URL`)
-   - These will be exposed to the browser
+### 3. Supabase Project Status Issues
 
-2. **Server-Side Variables**:
-   - No prefix needed (e.g., `DATABASE_URL`) 
-   - These will not be exposed to the client
+Your Supabase project might:
+- Be paused (needs to be resumed in Supabase dashboard)
+- Be in maintenance mode
+- Have expired billing
+- Have reached resource limits
 
-3. **Security**:
-   - Never hardcode API keys or sensitive information in client-side code
-   - Be aware that all `VITE_` prefixed variables will be visible in the built JavaScript
+**Check:** Visit [https://app.supabase.com](https://app.supabase.com) and verify your project status.
 
-4. **Environment Specific Configuration**:
-   - Use `.env.development` and `.env.production` for environment-specific values
-   - Use `.env.local` for local overrides (should be git-ignored)
+### 4. Network-Related Issues
+
+If you can't connect to your Supabase project:
+
+- Check if you're behind a VPN that might block access
+- Try connecting from a different network
+- Check if your firewall is blocking connections
+- Verify CORS settings in Supabase dashboard if using a dev server
+
+### 5. Data Population Issues
+
+If connection works but data isn't showing:
+
+```bash
+# Validate data exists in tables
+node src/services/supabase/verifySupabaseData.js
+
+# Re-run the data population process
+node src/services/supabase/runFullDataProcess.js
+```
+
+## SQL Queries for Common Fixes
+
+### Check Table Existence and Row Count
+
+```sql
+SELECT
+  table_name,
+  (SELECT count(*) FROM public.TABLENAME) as row_count
+FROM
+  information_schema.tables
+WHERE
+  table_schema = 'public'
+  AND table_type = 'BASE TABLE';
+```
+
+### List All RLS Policies
+
+```sql
+SELECT
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+FROM
+  pg_policies
+WHERE
+  schemaname = 'public'
+ORDER BY
+  tablename;
+```
+
+### Enable RLS and Create Policies for All Tables
+
+```sql
+-- Create a function to execute SQL that returns results
+CREATE OR REPLACE FUNCTION public.execute_sql_with_results(sql_query TEXT)
+RETURNS SETOF json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY EXECUTE sql_query;
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION public.execute_sql_with_results TO authenticated, anon;
+
+-- Create a function to execute SQL without results
+CREATE OR REPLACE FUNCTION public.execute_sql(sql_query TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  EXECUTE sql_query;
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION public.execute_sql TO authenticated, anon;
+```
+
+## Complete Reset
+
+If you need to reset your database connection completely:
+
+1. Check your environment variables one more time
+2. Visit the Supabase dashboard and ensure your project is active
+3. Run the setup scripts:
+
+```bash
+# Set up the schema and tables
+node src/services/supabase/setupSchema.js
+
+# Set up RLS policies
+node src/services/supabase/runSetupRls.js
+
+# Load initial data
+node src/services/supabase/runFullDataProcess.js
+```
+
+## Need More Help?
+
+If you've tried everything and still have issues, review browser console logs or server logs for more specific errors.
