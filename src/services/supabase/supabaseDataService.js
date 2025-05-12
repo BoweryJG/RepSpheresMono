@@ -52,33 +52,78 @@ class SupabaseDataService {
 
   /**
    * Initialize the Supabase data service
+   * Enhanced for Netlify deployment with better error handling and production support
    * @returns {Promise<{success: boolean, error?: string, verificationResult?: object}>}
    */
   async initialize() {
     try {
-      console.log('Initializing Supabase Data Service in',
-        process.env.NODE_ENV === 'production' ? 'production (Netlify)' : 'development');
+      // Determine environment
+      const isProduction = typeof import.meta !== 'undefined' && 
+                           import.meta.env && 
+                           import.meta.env.PROD === true;
+      
+      const isNetlify = typeof import.meta !== 'undefined' && 
+                        import.meta.env && 
+                        import.meta.env.NETLIFY === 'true';
+                        
+      console.log(`[Supabase Service] Initializing in ${isProduction ? 'production' : 'development'} mode. ${isNetlify ? '(Netlify)' : ''}`);
 
       // Try to authenticate first
-      await this.ensureAuthentication();
+      const authResult = await this.ensureAuthentication();
+      console.log(`[Supabase Service] Authentication ${authResult ? 'successful' : 'skipped'}`);
 
-      // In production (Netlify), skip some verification steps that might fail
-      if (process.env.NODE_ENV === 'production') {
+      // Enhanced verification process for production environments
+      if (isProduction) {
+        console.log('[Supabase Service] Production initialization process starting');
+        
+        // For production, first check basic connectivity
+        try {
+          const { data, error } = await supabase.from('dental_procedures_simplified').select('count', { count: 'exact', head: true });
+          if (error) {
+            throw new Error(`Connection error: ${error.message}`);
+          }
+          console.log('[Supabase Service] Basic connectivity check passed');
+        } catch (connErr) {
+          console.error('[Supabase Service] Basic connectivity check failed:', connErr.message);
+          
+          // In production, log but don't fail so UI can still load
+          this.dataVerified = false;
+          return { 
+            success: false, 
+            error: `Supabase connection failed: ${connErr.message}`,
+            inProduction: true
+          };
+        }
+
+        // In production (especially Netlify), try a lightweight verification approach
+        console.log('[Supabase Service] Running lightweight verification for production');
+        
+        // Perform a simple schema check rather than full verification
+        const simpleVerification = await this.lightweightVerification();
+        
+        if (!simpleVerification.success) {
+          console.warn('[Supabase Service] Production verification warning:', simpleVerification.message);
+          // Continue anyway but with a warning - we'll try to display whatever data is available
+        }
+        
         this.dataVerified = true;
-        console.log('Supabase data service initialized for production (Netlify). Skipping detailed verification.');
-        return { success: true, message: 'Supabase data service initialized for production' };
+        console.log('[Supabase Service] Production initialization complete');
+        return { 
+          success: true, 
+          message: 'Supabase service initialized for production',
+          verificationResult: simpleVerification
+        };
       }
 
-      // Regular verification for development...
-      // Verify database connection and tables
-      console.log('Verifying Supabase connection and tables (development)...');
+      // Regular verification for development environments
+      console.log('[Supabase Service] Running full verification for development');
       const verificationResult = await runFullVerification();
       this.verificationResult = verificationResult;
       this.lastVerification = new Date();
       
       // If verification failed due to connection issues, bail early
       if (!verificationResult.connection.success) {
-        console.error('Supabase connection verification failed:', verificationResult.connection.error);
+        console.error('[Supabase Service] Connection verification failed:', verificationResult.connection.error);
         return { 
           success: false, 
           error: 'Could not connect to Supabase database', 
@@ -86,13 +131,13 @@ class SupabaseDataService {
         };
       }
       
-      console.log('Supabase connection verified. Checking tables existence...');
+      console.log('[Supabase Service] Connection verified. Checking data availability...');
       
       // Check if data is already loaded
       const isDataAlreadyLoaded = await checkDataLoaded();
       
       if (!isDataAlreadyLoaded) {
-        console.log('Data not loaded yet. Setting up schema and loading data...');
+        console.log('[Supabase Service] Data not loaded yet. Setting up schema and loading data...');
         // Setup schema and load data
         await this.setupSchema();
         await loadAllDataToSupabase();
@@ -100,26 +145,95 @@ class SupabaseDataService {
         // Verify again after loading
         const postLoadVerification = await checkTables();
         if (!postLoadVerification.success) {
-          console.warn('Some tables still missing after data load:', postLoadVerification.tables);
+          console.warn('[Supabase Service] Some tables still missing after data load:', postLoadVerification.tables);
         }
       } else {
-        console.log('Data already loaded in Supabase');
+        console.log('[Supabase Service] Data already loaded in Supabase');
       }
       
-      console.log('Supabase data service initialization complete.');
+      console.log('[Supabase Service] Development initialization complete');
       this.dataVerified = true;
 
       return { 
         success: true, 
-        message: 'Supabase data service initialized successfully (development)', 
+        message: 'Supabase data service initialized successfully', 
         verificationResult 
       };
     } catch (error) {
-      console.error('Error initializing Supabase data service:', error);
+      console.error('[Supabase Service] Error during initialization:', error);
+      // For production environments, try to continue despite errors
+      const isProduction = typeof import.meta !== 'undefined' && 
+                           import.meta.env && 
+                           import.meta.env.PROD === true;
+                           
+      if (isProduction) {
+        this.dataVerified = false;
+        console.warn('[Supabase Service] Continuing in production despite initialization error');
+        return { 
+          success: false, 
+          error: `Initialization error (continuing anyway): ${error.message}`,
+          verificationResult: this.verificationResult,
+          inProduction: true
+        };
+      }
+      
       return { 
         success: false, 
         error: error.message,
         verificationResult: this.verificationResult
+      };
+    }
+  }
+  
+  /**
+   * Lightweight verification for production environments
+   * Especially useful for Netlify where full verification might fail
+   * @returns {Promise<{success: boolean, message: string, tables: object}>}
+   */
+  async lightweightVerification() {
+    try {
+      // List of critical tables to check
+      const criticalTables = [
+        'dental_procedures_simplified',
+        'companies',
+        'aesthetic_procedures'
+      ];
+      
+      const tableResults = {};
+      let overallSuccess = true;
+      
+      // Check each critical table
+      for (const table of criticalTables) {
+        try {
+          const { count, error } = await supabase
+            .from(table)
+            .select('*', { count: 'exact', head: true });
+            
+          if (error) {
+            tableResults[table] = { exists: false, error: error.message };
+            overallSuccess = false;
+          } else {
+            tableResults[table] = { exists: true, count };
+          }
+        } catch (err) {
+          tableResults[table] = { exists: false, error: err.message };
+          overallSuccess = false;
+        }
+      }
+      
+      return {
+        success: overallSuccess,
+        message: overallSuccess ? 
+          'All critical tables verified' : 
+          'Some critical tables are missing or inaccessible',
+        tables: tableResults
+      };
+    } catch (error) {
+      console.error('[Supabase Service] Error during lightweight verification:', error);
+      return {
+        success: false,
+        message: `Verification error: ${error.message}`,
+        tables: {}
       };
     }
   }
