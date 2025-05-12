@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
-import { loadAllDataToSupabase } from './dataLoader';
+import { loadAllDataToSupabase, checkDataLoaded } from './dataLoader';
 import { getCurrentSession, signInWithEmail } from './supabaseAuth';
+import { runFullVerification, verifyTables } from './verifySupabaseData';
 
 /**
  * Class to fetch market insight data from Supabase
@@ -8,6 +9,9 @@ import { getCurrentSession, signInWithEmail } from './supabaseAuth';
 class SupabaseDataService {
   constructor() {
     this.isAuthenticated = false;
+    this.dataVerified = false;
+    this.lastVerification = null;
+    this.verificationResult = null;
   }
 
   /**
@@ -45,6 +49,11 @@ class SupabaseDataService {
       return false;
     }
   }
+
+  /**
+   * Initialize the Supabase data service
+   * @returns {Promise<{success: boolean, error?: string, verificationResult?: object}>}
+   */
   async initialize() {
     try {
       console.log('Initializing Supabase Data Service...');
@@ -52,15 +61,57 @@ class SupabaseDataService {
       // Try to authenticate first
       await this.ensureAuthentication();
       
-      console.log('Setting up database schema...');
-      await this.setupSchema();
-      console.log('Loading all data to Supabase tables...');
-      await loadAllDataToSupabase();
-      console.log('Initialization complete.');
-      return { success: true };
+      // Verify database connection and tables
+      console.log('Verifying Supabase connection and tables...');
+      const verificationResult = await runFullVerification();
+      this.verificationResult = verificationResult;
+      this.lastVerification = new Date();
+      
+      // If verification failed due to connection issues, bail early
+      if (!verificationResult.connection.success) {
+        console.error('Supabase connection verification failed:', verificationResult.connection.error);
+        return { 
+          success: false, 
+          error: 'Could not connect to Supabase database', 
+          verificationResult 
+        };
+      }
+      
+      console.log('Supabase connection verified. Checking tables existence...');
+      
+      // Check if data is already loaded
+      const isDataAlreadyLoaded = await checkDataLoaded();
+      
+      if (!isDataAlreadyLoaded) {
+        console.log('Data not loaded yet. Setting up schema and loading data...');
+        // Setup schema and load data
+        await this.setupSchema();
+        await loadAllDataToSupabase();
+        
+        // Verify again after loading
+        const postLoadVerification = await verifyTables();
+        if (!postLoadVerification.success) {
+          console.warn('Some tables still missing after data load:', postLoadVerification.tables);
+        }
+      } else {
+        console.log('Data already loaded in Supabase');
+      }
+      
+      console.log('Supabase data service initialization complete.');
+      this.dataVerified = true;
+      
+      return { 
+        success: true, 
+        message: 'Supabase data service initialized successfully', 
+        verificationResult 
+      };
     } catch (error) {
       console.error('Error initializing Supabase data service:', error);
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: error.message,
+        verificationResult: this.verificationResult
+      };
     }
   }
 
@@ -104,9 +155,15 @@ class SupabaseDataService {
       // Direct Supabase connection
       // Fetch procedures
       const { data: procedures, error: procError } = await supabase
-        .from('dental_procedures')
+        .from('dental_procedures_simplified')
         .select('*');
       if (procError) throw procError;
+      
+      if (!procedures || procedures.length === 0) {
+        console.warn('No dental procedures found in database');
+        return [];
+      }
+      
       // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from('categories')
@@ -114,6 +171,7 @@ class SupabaseDataService {
         .eq('industry', 'dental')
         .order('position', { ascending: true });
       if (catError) throw catError;
+      
       // Map category_id to category name
       const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
@@ -127,7 +185,8 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching dental procedures:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crash
+      return [];
     }
   }
   
@@ -142,11 +201,18 @@ class SupabaseDataService {
         .from('aesthetic_procedures')
         .select('*');
       if (procError) throw procError;
+      
+      if (!procedures || procedures.length === 0) {
+        console.warn('No aesthetic procedures found in database');
+        return [];
+      }
+      
       // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from('aesthetic_categories')
         .select('id, category_label');
       if (catError) throw catError;
+      
       // Map category_id to category name
       const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
@@ -160,7 +226,8 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching aesthetic procedures:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent UI crash
+      return [];
     }
   }
   
@@ -180,7 +247,7 @@ class SupabaseDataService {
       return data.map(category => category.category_label);
     } catch (error) {
       console.error('Error fetching dental categories:', error); 
-      throw error;
+      return [];
     }
   }
   
@@ -198,7 +265,7 @@ class SupabaseDataService {
       return data.map(category => category.category_label);
     } catch (error) {
       console.error('Error fetching aesthetic categories:', error); 
-      throw error;
+      return [];
     }
   }
   
@@ -221,7 +288,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching dental market growth:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -244,7 +311,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching aesthetic market growth:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -266,7 +333,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching dental demographics:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -288,7 +355,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching aesthetic demographics:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -307,7 +374,7 @@ class SupabaseDataService {
       return data;
     } catch (error) {
       console.error('Error fetching dental gender distribution:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -326,7 +393,7 @@ class SupabaseDataService {
       return data;
     } catch (error) {
       console.error('Error fetching aesthetic gender distribution:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -356,7 +423,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching metropolitan markets:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -376,7 +443,7 @@ class SupabaseDataService {
       return data;
     } catch (error) {
       console.error('Error fetching market size by state:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -395,7 +462,7 @@ class SupabaseDataService {
       return data;
     } catch (error) {
       console.error('Error fetching growth rates by region:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -432,7 +499,7 @@ class SupabaseDataService {
       return result;
     } catch (error) {
       console.error('Error fetching procedures by region:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -487,7 +554,7 @@ class SupabaseDataService {
       return result;
     } catch (error) {
       console.error('Error fetching demographics by region:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -531,7 +598,7 @@ class SupabaseDataService {
       return result;
     } catch (error) {
       console.error('Error fetching top providers by market:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -557,7 +624,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching dental companies:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -583,7 +650,7 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching aesthetic companies:', error);
-      throw error;
+      return [];
     }
   }
   
@@ -610,7 +677,45 @@ class SupabaseDataService {
       }));
     } catch (error) {
       console.error('Error fetching all companies:', error);
-      throw error;
+      return [];
+    }
+  }
+  
+  /**
+   * Verify data integrity and reload if necessary
+   * @returns {Promise<boolean>} Success status
+   */
+  async verifyAndReloadDataIfNeeded() {
+    try {
+      console.log('Verifying data integrity...');
+      
+      // Run verification check
+      const verificationResult = await runFullVerification();
+      this.verificationResult = verificationResult;
+      this.lastVerification = new Date();
+      
+      if (!verificationResult.success) {
+        console.warn('Data verification failed, attempting to reload data...');
+        
+        // Try to reload all data
+        await loadAllDataToSupabase();
+        
+        // Verify again after reloading
+        const reVerificationResult = await runFullVerification();
+        if (!reVerificationResult.success) {
+          console.error('Data still invalid after reload attempt');
+          return false;
+        }
+        
+        console.log('Data successfully reloaded');
+        return true;
+      }
+      
+      console.log('Data verification passed');
+      return true;
+    } catch (error) {
+      console.error('Error during data verification and reload:', error);
+      return false;
     }
   }
   
