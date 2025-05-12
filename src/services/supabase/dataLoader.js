@@ -108,7 +108,7 @@ const loadProcedures = async () => {
   // Get category IDs for dental procedures
   const { data: dentalCategoryData, error: dentalCategoryError } = await supabase
     .from('categories')
-    .select('id, category_label as name')
+    .select('id, category_label')
     .eq('industry', 'dental');
   
   if (dentalCategoryError) throw dentalCategoryError;
@@ -116,7 +116,7 @@ const loadProcedures = async () => {
   // Create a mapping of category names to IDs
   const dentalCategoryMap = {};
   dentalCategoryData.forEach(category => {
-    dentalCategoryMap[category.name] = category.id;
+    dentalCategoryMap[category.category_label] = category.id;
   });
   
   // Insert dental procedures
@@ -139,7 +139,7 @@ const loadProcedures = async () => {
   // Get category IDs for aesthetic procedures
   const { data: aestheticCategoryData, error: aestheticCategoryError } = await supabase
     .from('categories')
-    .select('id, category_label as name')
+    .select('id, category_label')
     .eq('industry', 'aesthetic');
   
   if (aestheticCategoryError) throw aestheticCategoryError;
@@ -147,7 +147,7 @@ const loadProcedures = async () => {
   // Create a mapping of category names to IDs
   const aestheticCategoryMap = {};
   aestheticCategoryData.forEach(category => {
-    aestheticCategoryMap[category.name] = category.id;
+    aestheticCategoryMap[category.category_label] = category.id;
   });
   
   // Insert aesthetic procedures

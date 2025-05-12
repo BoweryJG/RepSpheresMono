@@ -145,10 +145,10 @@ class SupabaseDataService {
       // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from('aesthetic_categories')
-        .select('id, name');
+        .select('id, category_label');
       if (catError) throw catError;
       // Map category_id to category name
-      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.name]));
+      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
         name: proc.name,
         category: categoryMap[proc.category_id] || '',
@@ -191,11 +191,11 @@ class SupabaseDataService {
     try {
       const { data, error } = await supabase
         .from('aesthetic_categories')
-        .select('name');
+        .select('category_label');
       
       if (error) throw error;
       
-      return data.map(category => category.name);
+      return data.map(category => category.category_label);
     } catch (error) {
       console.error('Error fetching aesthetic categories:', error); 
       throw error;
