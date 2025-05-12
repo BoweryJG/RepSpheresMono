@@ -1,6 +1,25 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Custom plugin to ensure process is defined in browser environment
+const processPolyfillPlugin = () => {
+  return {
+    name: 'process-polyfill',
+    transformIndexHtml(html) {
+      // Add a script to define process before any other scripts run
+      return html.replace(
+        /<head>/,
+        `<head>
+        <script>
+          // Ensure process is defined in browser environment
+          window.process = window.process || {};
+          window.process.env = window.process.env || {};
+        </script>`
+      );
+    }
+  };
+};
+
 export default defineConfig(({ mode }) => {
   // Load all env variables regardless of the environment
   const env = loadEnv(mode, process.cwd(), '');
@@ -16,7 +35,10 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      processPolyfillPlugin()
+    ],
     server: {
       port: 3000, // Your configured port
       open: true,
@@ -53,15 +75,16 @@ export default defineConfig(({ mode }) => {
       // Make environment mode available to the app
       '__APP_ENV__': JSON.stringify(mode),
       '__IS_NETLIFY__': isNetlify,
-      // Add process polyfill for browser environment
-      'process.env': process.env.NODE_ENV === 'production' 
-        ? JSON.stringify({}) 
-        : JSON.stringify(Object.keys(env)
-            .filter(key => key.startsWith('VITE_'))
-            .reduce((obj, key) => {
-              obj[key] = env[key];
-              return obj;
-            }, {}))
+      // Add process polyfill for browser environment - include VITE_ variables in all environments
+      'process.env': JSON.stringify(Object.keys(env)
+        .filter(key => key.startsWith('VITE_'))
+        .reduce((obj, key) => {
+          obj[key] = env[key];
+          return obj;
+        }, {
+          // Always include NODE_ENV for libraries that might depend on it
+          NODE_ENV: mode
+        }))
     }
   };
 });

@@ -21,20 +21,48 @@
 Modified `vite.config.js` to properly handle Node.js environment objects in browser context:
 
 ```js
-// Added process.env polyfill for browser environment
+// Added process.env polyfill for browser environment with environment variables in all environments
 define: {
-  'process.env': process.env.NODE_ENV === 'production' 
-    ? JSON.stringify({}) 
-    : JSON.stringify(Object.keys(env)
-        .filter(key => key.startsWith('VITE_'))
-        .reduce((obj, key) => {
-          obj[key] = env[key];
-          return obj;
-        }, {}))
+  'process.env': JSON.stringify(Object.keys(env)
+    .filter(key => key.startsWith('VITE_'))
+    .reduce((obj, key) => {
+      obj[key] = env[key];
+      return obj;
+    }, {
+      // Always include NODE_ENV for libraries that might depend on it
+      NODE_ENV: mode
+    }))
 }
 ```
 
-This properly polyfills the `process.env` object in the browser context with only the safe, client-side environment variables (those with the `VITE_` prefix).
+This properly polyfills the `process.env` object in the browser context with the safe, client-side environment variables (those with the `VITE_` prefix) in both development and production environments.
+
+### 1.1 Added Process Polyfill Plugin
+
+Created a custom Vite plugin to ensure `process` is defined before any scripts run:
+
+```js
+// Custom plugin to ensure process is defined in browser environment
+const processPolyfillPlugin = () => {
+  return {
+    name: 'process-polyfill',
+    transformIndexHtml(html) {
+      // Add a script to define process before any other scripts run
+      return html.replace(
+        /<head>/,
+        `<head>
+        <script>
+          // Ensure process is defined in browser environment
+          window.process = window.process || {};
+          window.process.env = window.process.env || {};
+        </script>`
+      );
+    }
+  };
+};
+```
+
+This plugin adds a script to the HTML head that ensures `process` and `process.env` are defined before any other scripts run, preventing the "process is not defined" error.
 
 ### 2. Enhanced Environment Variable Handling
 
