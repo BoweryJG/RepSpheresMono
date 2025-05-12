@@ -34,6 +34,7 @@ import {
  */
 export const loadAllDataToSupabase = async () => {
   try {
+    console.log('>>> SUPABASE DATALOADER: loadAllDataToSupabase STARTED <<<');
     console.log('Starting data upload to Supabase...');
     
     // Load categories first (needed for foreign keys)
