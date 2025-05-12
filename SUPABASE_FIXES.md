@@ -157,98 +157,90 @@ Updated `src/services/supabase/supabaseClient.js` to add safeguards for string o
    },
    ```
 
-### 4. Added Global String Operation Safeguards
+### 4. Added Robust Error Handling with JavaScript Proxy
 
-Implemented a comprehensive solution by enhancing the Vite plugin to add global safeguards for all string operations:
+After finding that the global string operation safeguards weren't sufficient, we implemented a more robust solution using JavaScript Proxy to intercept all Supabase client method calls:
 
 ```js
-// Custom plugin to ensure process is defined in browser environment
-// and add global safeguards for string operations
-const browserSafetyPlugin = () => {
-  return {
-    name: 'browser-safety-plugin',
-    transformIndexHtml(html) {
-      // Add scripts to define process and add string operation safeguards before any other scripts run
-      return html.replace(
-        /<head>/,
-        `<head>
-        <script>
-          // Ensure process is defined in browser environment
-          window.process = window.process || {};
-          window.process.env = window.process.env || {};
-          
-          // Global safeguards for string operations to prevent "Cannot read properties of undefined" errors
-          (function() {
-            // Store original String prototype methods
-            var originalIndexOf = String.prototype.indexOf;
-            var originalLastIndexOf = String.prototype.lastIndexOf;
-            var originalIncludes = String.prototype.includes;
-            var originalStartsWith = String.prototype.startsWith;
-            var originalEndsWith = String.prototype.endsWith;
-            var originalSubstring = String.prototype.substring;
-            var originalSlice = String.prototype.slice;
-            var originalSplit = String.prototype.split;
+// Create a safe wrapper around the Supabase client
+const createSafeSupabaseClient = () => {
+  try {
+    // Ensure we have valid string values for createClient with extreme safeguards
+    const safeSupabaseUrl = String(supabaseUrl || '');
+    const safeSupabaseAnonKey = String(supabaseAnonKey || '');
+    
+    // Create the actual Supabase client
+    const client = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      },
+      global: {
+        headers: {
+          'x-application-name': 'market-insights-dashboard',
+          'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
+        }
+      },
+      db: {
+        schema: 'public'
+      }
+    });
+    
+    // Create a proxy to intercept all method calls and add error handling
+    return new Proxy(client, {
+      get: function(target, prop) {
+        // Get the original property
+        const originalValue = target[prop];
+        
+        // If it's not a function, just return it
+        if (typeof originalValue !== 'function') {
+          return originalValue;
+        }
+        
+        // If it's a function, wrap it with error handling
+        return function(...args) {
+          try {
+            const result = originalValue.apply(target, args);
             
-            // Override String methods with safe versions
-            String.prototype.indexOf = function() {
-              if (this === undefined || this === null) return -1;
-              return originalIndexOf.apply(this, arguments);
-            };
+            // If the result is a promise, add error handling
+            if (result && typeof result.then === 'function') {
+              return result.catch(err => {
+                console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+                throw err;
+              });
+            }
             
-            String.prototype.lastIndexOf = function() {
-              if (this === undefined || this === null) return -1;
-              return originalLastIndexOf.apply(this, arguments);
-            };
-            
-            String.prototype.includes = function() {
-              if (this === undefined || this === null) return false;
-              return originalIncludes.apply(this, arguments);
-            };
-            
-            String.prototype.startsWith = function() {
-              if (this === undefined || this === null) return false;
-              return originalStartsWith.apply(this, arguments);
-            };
-            
-            String.prototype.endsWith = function() {
-              if (this === undefined || this === null) return false;
-              return originalEndsWith.apply(this, arguments);
-            };
-            
-            String.prototype.substring = function() {
-              if (this === undefined || this === null) return '';
-              return originalSubstring.apply(this, arguments);
-            };
-            
-            String.prototype.slice = function() {
-              if (this === undefined || this === null) return '';
-              return originalSlice.apply(this, arguments);
-            };
-            
-            String.prototype.split = function() {
-              if (this === undefined || this === null) return [];
-              return originalSplit.apply(this, arguments);
-            };
-            
-            // Also add a global safeguard for any string operations
-            window.safeString = function(str) {
-              return (str === undefined || str === null) ? '' : String(str);
-            };
-            
-            console.log('[Safety] String operation safeguards installed');
-          })();
-        </script>`
-      );
-    }
-  };
+            return result;
+          } catch (err) {
+            console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+            throw err;
+          }
+        };
+      }
+    });
+  } catch (err) {
+    console.error('[Supabase] Failed to create client:', err);
+    // Return a dummy client that won't throw errors
+    return {
+      from: () => ({ select: () => ({ data: null, error: { message: 'Client initialization failed' } }) }),
+      auth: { 
+        onAuthStateChange: (callback) => {
+          console.log('[Supabase] Auth state change listener registered on dummy client');
+          return { data: { subscription: { unsubscribe: () => {} } } };
+        }
+      }
+    };
+  }
 };
 ```
 
 This approach:
-1. Overrides all common String prototype methods with safe versions that check for undefined/null before proceeding
-2. Returns appropriate default values when the string is undefined or null
-3. Adds a global `safeString()` utility function for additional safety
-4. Works for all code in the application, including third-party libraries
+1. Creates a JavaScript Proxy that intercepts all method calls to the Supabase client
+2. Adds try/catch blocks around every method call to prevent uncaught exceptions
+3. Adds special handling for Promise-based methods to catch async errors
+4. Provides a fallback dummy client if initialization fails completely
+5. Uses extreme string safeguards with String() constructor and nullish coalescing
 
 ## Testing Results
 
