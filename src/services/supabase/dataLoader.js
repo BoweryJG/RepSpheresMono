@@ -150,11 +150,19 @@ const loadProcedures = async () => {
   
   // Insert aesthetic procedures
   for (const procedure of aestheticProcedures) {
+    const categoryId = aestheticCategoryMap[procedure.category];
+    if (categoryId === undefined) {
+      console.warn(`Category ID not found for aesthetic procedure: "${procedure.name}" with category "${procedure.category}". Skipping this procedure or it will have a null category_id.`);
+      // Optionally, decide if you want to skip upserting or upsert with null category_id
+      // For now, it will proceed and likely insert null for category_id, leading to mapping issues later.
+      // To strictly prevent procedures with missing categories, you could add 'continue;' here.
+    }
+
     const { error } = await supabase
       .from('aesthetic_procedures')
       .upsert({
         name: procedure.name,
-        category_id: aestheticCategoryMap[procedure.category],
+        category_id: categoryId, // Use the resolved categoryId
         yearly_growth_percentage: procedure.growth,
         market_size_2025_usd_millions: procedure.marketSize2025,
         primary_age_group: procedure.primaryAgeGroup,
@@ -165,6 +173,7 @@ const loadProcedures = async () => {
     if (error) throw error;
   }
   
+  console.log('Aesthetic procedures processed (check logs for warnings).');
   console.log('Procedures loaded successfully!');
 };
 
