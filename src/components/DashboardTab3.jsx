@@ -104,7 +104,7 @@ const PatientDemographicsTab = ({
                         <Chip 
                           label={procedure.category} 
                           size="small"
-                          sx={{ backgroundColor: COLORS[currentCategories.indexOf(procedure.category) % COLORS.length] + '40', 
+                          sx={{ backgroundColor: currentCategories ? COLORS[currentCategories.indexOf(procedure.category) % COLORS.length] + '40' : '#ccc', 
                                color: 'text.primary' }}
                         />
                       </TableCell>

@@ -475,7 +475,7 @@ const CompaniesTab = ({ isDental, COLORS }) => {
                                     ml: 1,
                                     height: 10,
                                     width: `${company.marketShare * 2}px`,
-                                    backgroundColor: COLORS[companies.indexOf(company) % COLORS.length],
+                                    backgroundColor: companies ? COLORS[companies.indexOf(company) % COLORS.length] : '#ccc',
                                     borderRadius: 1
                                   }}
                                 />
@@ -531,7 +531,7 @@ const CompaniesTab = ({ isDental, COLORS }) => {
                           sx={{
                             height: 10,
                             width: `${Math.min(company.marketShare * 3, 100)}%`,
-                            backgroundColor: COLORS[companies.indexOf(company) % COLORS.length],
+                            backgroundColor: companies ? COLORS[companies.indexOf(company) % COLORS.length] : '#ccc',
                             borderRadius: 1,
                             flexGrow: 1
                           }}
