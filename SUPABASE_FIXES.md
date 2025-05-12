@@ -14,6 +14,10 @@
    - Error occurred during Netlify build process when the Supabase client tried to access `import.meta.env.PROD` in a Node.js environment
    - This was causing the build to fail with `TypeError: Cannot read properties of undefined (reading 'PROD')`
 
+4. **"Cannot read properties of undefined (reading 'indexOf')" error**
+   - Error occurred when string operations were performed on potentially undefined values
+   - This was causing the application to crash with `Uncaught TypeError: Cannot read properties of undefined (reading 'indexOf')`
+
 ## Implemented Solutions
 
 ### 1. Fixed process.env in Browser Environment
@@ -114,13 +118,53 @@ Updated `src/services/supabase/supabaseClient.js` to:
      (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
    ```
 
+### 3. Added String Operation Safeguards
+
+Updated `src/services/supabase/supabaseClient.js` to add safeguards for string operations:
+
+1. Added type checking and conversion for URL display:
+   ```js
+   // Add safeguard for undefined or non-string values
+   const urlToDisplay = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
+   console.log(`[Supabase] Using URL: ${urlToDisplay.substring(0, 30)}...`);
+   ```
+
+2. Ensured valid string values for createClient:
+   ```js
+   // Ensure we have valid string values for createClient
+   const safeSupabaseUrl = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
+   const safeSupabaseAnonKey = typeof supabaseAnonKey === 'string' ? supabaseAnonKey : String(supabaseAnonKey || '');
+   
+   // Create Supabase client with explicit options and enhanced error handling
+   export const supabase = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
+     // ...
+   });
+   ```
+
+3. Added safeguards for URL operations in fetch:
+   ```js
+   global: {
+     headers: {
+       'x-application-name': 'market-insights-dashboard',
+       'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
+     },
+     // Add safeguards for string operations
+     fetch: (url, options) => {
+       // Ensure URL is a string before any operations are performed on it
+       const safeUrl = typeof url === 'string' ? url : String(url || '');
+       return fetch(safeUrl, options);
+     }
+   },
+   ```
+
 ## Testing Results
 
 The application has been tested and:
 
 1. The "process is not defined" error no longer occurs
-2. Supabase initializes properly with the following console logs:
-   - `[Supabase] Initializing in development environment`
+2. The "Cannot read properties of undefined (reading 'indexOf')" error no longer occurs
+3. Supabase initializes properly with the following console logs:
+   - `[Supabase] Initializing in production environment`
    - `[Supabase] Using URL: https://cbopynuvhcymbumjnvay.s...`
    - `[Supabase] Client initialized`
    - `[Supabase] Auth state changed: INITIAL_SESSION`

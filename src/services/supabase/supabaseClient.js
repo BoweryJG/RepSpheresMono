@@ -53,11 +53,17 @@ const isProduction =
 console.log(`[Supabase] Initializing in ${isProduction ? 'production' : 'development'} environment`);
 if (supabaseUrl) {
   // Only show partial URL for security
-  console.log(`[Supabase] Using URL: ${supabaseUrl.substring(0, 30)}...`);
+  // Add safeguard for undefined or non-string values
+  const urlToDisplay = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
+  console.log(`[Supabase] Using URL: ${urlToDisplay.substring(0, 30)}...`);
 }
 
+// Ensure we have valid string values for createClient
+const safeSupabaseUrl = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
+const safeSupabaseAnonKey = typeof supabaseAnonKey === 'string' ? supabaseAnonKey : String(supabaseAnonKey || '');
+
 // Create Supabase client with explicit options and enhanced error handling
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -67,6 +73,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'x-application-name': 'market-insights-dashboard',
       'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
+    },
+    // Add safeguards for string operations
+    fetch: (url, options) => {
+      // Ensure URL is a string before any operations are performed on it
+      const safeUrl = typeof url === 'string' ? url : String(url || '');
+      return fetch(safeUrl, options);
     }
   },
   db: {
