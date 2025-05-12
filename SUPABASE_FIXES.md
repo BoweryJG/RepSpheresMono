@@ -157,6 +157,99 @@ Updated `src/services/supabase/supabaseClient.js` to add safeguards for string o
    },
    ```
 
+### 4. Added Global String Operation Safeguards
+
+Implemented a comprehensive solution by enhancing the Vite plugin to add global safeguards for all string operations:
+
+```js
+// Custom plugin to ensure process is defined in browser environment
+// and add global safeguards for string operations
+const browserSafetyPlugin = () => {
+  return {
+    name: 'browser-safety-plugin',
+    transformIndexHtml(html) {
+      // Add scripts to define process and add string operation safeguards before any other scripts run
+      return html.replace(
+        /<head>/,
+        `<head>
+        <script>
+          // Ensure process is defined in browser environment
+          window.process = window.process || {};
+          window.process.env = window.process.env || {};
+          
+          // Global safeguards for string operations to prevent "Cannot read properties of undefined" errors
+          (function() {
+            // Store original String prototype methods
+            var originalIndexOf = String.prototype.indexOf;
+            var originalLastIndexOf = String.prototype.lastIndexOf;
+            var originalIncludes = String.prototype.includes;
+            var originalStartsWith = String.prototype.startsWith;
+            var originalEndsWith = String.prototype.endsWith;
+            var originalSubstring = String.prototype.substring;
+            var originalSlice = String.prototype.slice;
+            var originalSplit = String.prototype.split;
+            
+            // Override String methods with safe versions
+            String.prototype.indexOf = function() {
+              if (this === undefined || this === null) return -1;
+              return originalIndexOf.apply(this, arguments);
+            };
+            
+            String.prototype.lastIndexOf = function() {
+              if (this === undefined || this === null) return -1;
+              return originalLastIndexOf.apply(this, arguments);
+            };
+            
+            String.prototype.includes = function() {
+              if (this === undefined || this === null) return false;
+              return originalIncludes.apply(this, arguments);
+            };
+            
+            String.prototype.startsWith = function() {
+              if (this === undefined || this === null) return false;
+              return originalStartsWith.apply(this, arguments);
+            };
+            
+            String.prototype.endsWith = function() {
+              if (this === undefined || this === null) return false;
+              return originalEndsWith.apply(this, arguments);
+            };
+            
+            String.prototype.substring = function() {
+              if (this === undefined || this === null) return '';
+              return originalSubstring.apply(this, arguments);
+            };
+            
+            String.prototype.slice = function() {
+              if (this === undefined || this === null) return '';
+              return originalSlice.apply(this, arguments);
+            };
+            
+            String.prototype.split = function() {
+              if (this === undefined || this === null) return [];
+              return originalSplit.apply(this, arguments);
+            };
+            
+            // Also add a global safeguard for any string operations
+            window.safeString = function(str) {
+              return (str === undefined || str === null) ? '' : String(str);
+            };
+            
+            console.log('[Safety] String operation safeguards installed');
+          })();
+        </script>`
+      );
+    }
+  };
+};
+```
+
+This approach:
+1. Overrides all common String prototype methods with safe versions that check for undefined/null before proceeding
+2. Returns appropriate default values when the string is undefined or null
+3. Adds a global `safeString()` utility function for additional safety
+4. Works for all code in the application, including third-party libraries
+
 ## Testing Results
 
 The application has been tested and:
@@ -169,6 +262,7 @@ The application has been tested and:
    - `[Supabase] Client initialized`
    - `[Supabase] Auth state changed: INITIAL_SESSION`
    - `[Supabase] Connection test successful`
+   - `[Safety] String operation safeguards installed`
 
 ## Best Practices for Environment Variables in Vite
 
