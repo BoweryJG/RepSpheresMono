@@ -122,7 +122,7 @@ const loadProcedures = async () => {
   // Insert dental procedures
   for (const procedure of dentalProcedures) {
     const { error } = await supabase
-      .from('dental_procedures')
+      .from('dental_procedures_simplified')
       .upsert({
         procedure_name: procedure.name,
         category_id: dentalCategoryMap[procedure.category],
@@ -551,7 +551,7 @@ const loadCompaniesData = async () => {
 // Function to check if data is already loaded
 export const checkDataLoaded = async () => {
   const { count: dentalProceduresCount, error: dentalProceduresError } = await supabase
-    .from('dental_procedures')
+    .from('dental_procedures_simplified')
     .select('*', { count: 'exact', head: true });
   
   if (dentalProceduresError) throw dentalProceduresError;
