@@ -52,7 +52,16 @@ export default defineConfig(({ mode }) => {
     define: {
       // Make environment mode available to the app
       '__APP_ENV__': JSON.stringify(mode),
-      '__IS_NETLIFY__': isNetlify
+      '__IS_NETLIFY__': isNetlify,
+      // Add process polyfill for browser environment
+      'process.env': process.env.NODE_ENV === 'production' 
+        ? JSON.stringify({}) 
+        : JSON.stringify(Object.keys(env)
+            .filter(key => key.startsWith('VITE_'))
+            .reduce((obj, key) => {
+              obj[key] = env[key];
+              return obj;
+            }, {}))
     }
   };
 });
