@@ -1,3 +1,5 @@
+import 'dotenv/config'; // Load .env file into process.env
+
 /**
  * Initial Data Loader Script
  * 
@@ -72,21 +74,70 @@ async function loadTrendingTopics(industry) {
   
   try {
     // Generate trending topics based on news articles
-    const articles = await fetchNewsFromExternalSources(industry, { limit: 50 });
+    let articles = [];
+    const searchTerm = `${industry} industry news latest developments`; // More specific search term for topics
+
+    if (process.env.NODE_ENV !== 'production' && typeof use_mcp_tool === 'function') {
+      console.log(`[Dev Only] Attempting to use Firecrawl search for trending topics in ${industry}`);
+      try {
+        const firecrawlResults = await use_mcp_tool({
+          server_name: 'github.com/mendableai/firecrawl-mcp-server',
+          tool_name: 'firecrawl_search',
+          arguments: {
+            query: searchTerm,
+            limit: 50, // Fetch more for better keyword analysis
+            scrapeOptions: { formats: ['markdown'] }
+          }
+        });
+        // Assuming firecrawlResults is an array of objects with a markdown property
+        if (firecrawlResults && firecrawlResults.length > 0) {
+          articles = firecrawlResults.map(fr => ({ 
+            title: fr.title || '', // Firecrawl search might provide title directly
+            content: fr.markdown || '', // Or fr.content if that's the field
+            summary: fr.description || ''
+          }));
+          console.log(`[Dev Only] Fetched ${articles.length} potential articles/pages via Firecrawl search for trending topics.`);
+        }
+      } catch (fcError) {
+        console.warn('[Dev Only] Firecrawl search for trending topics failed, will fall back to Brave Search.', fcError);
+      }
+    }
+
+    if (articles.length === 0) {
+      console.log(`Falling back to Brave Search for trending topics in ${industry}.`);
+      // Use the local fetchFromBraveSearch in this file
+      const braveSearchResults = await fetchFromBraveSearch(searchTerm, 50); 
+      // We need to adapt braveSearchResults to look like articles for extractKeywords
+      // Brave search results usually have { title, description, url }
+      articles = braveSearchResults.map(bsr => ({ 
+        title: bsr.title || '', 
+        content: bsr.description || '', // Using description as content for keyword extraction
+        summary: bsr.description || ''
+      }));
+      console.log(`Fetched ${articles.length} results via Brave Search for trending topics.`);
+    }
     
+    if (articles.length === 0) {
+      console.log(`No articles found to generate trending topics for ${industry}.`);
+      return [];
+    }
+
     // Extract keywords from article titles and content
     const keywords = extractKeywords(articles);
     
-    // Create trending topics from top keywords
-    const trendingTopics = keywords.slice(0, 10).map((keyword, index) => ({
-      id: index + 1,
-      topic: keyword.word,
-      industry: industry,
-      popularity: keyword.count,
-      trend_direction: Math.random() > 0.3 ? 'up' : 'down', // 70% chance of trending up
-      percentage_change: Math.floor(Math.random() * 50 + 10), // 10-60% change
-      related_terms: generateRelatedTerms(keyword.word, keywords)
-    }));
+    // Create trending topics from top keywords, aligning with schema.sql
+    const trendingTopics = keywords.slice(0, 10).map((keyword, index) => {
+      const related = generateRelatedTerms(keyword.word, keywords);
+      return {
+        // id is SERIAL PRIMARY KEY, no need to set it explicitly during insert/upsert
+        topic: keyword.word,
+        industry: industry,
+        relevance_score: keyword.count, // Use keyword count as relevance score for now
+        source_articles_count: keyword.count, // Use keyword count as source articles count
+        keywords: related.join(', ') // Store related terms as comma-separated string
+        // Removed: popularity, trend_direction, percentage_change, related_terms (array)
+      };
+    });
     
     // Store trending topics in Supabase
     for (const topic of trendingTopics) {
@@ -185,34 +236,53 @@ async function loadUpcomingEvents(industry) {
     
     for (const result of braveResults) {
       try {
-        // Scrape event details using Firecrawl
-        const scrapeResult = await use_mcp_tool({
-          server_name: 'github.com/mendableai/firecrawl-mcp-server',
-          tool_name: 'firecrawl_scrape',
-          arguments: {
-            url: result.url,
-            formats: ['markdown'],
-            onlyMainContent: true
-          }
-        });
-        
-        if (scrapeResult && scrapeResult.markdown) {
-          // Extract event information
-          const eventInfo = extractEventInfo(scrapeResult.markdown, result.title, result.url);
-          
-          if (eventInfo.name) {
-            events.push({
-              id: events.length + 1,
-              name: eventInfo.name,
-              description: eventInfo.description,
-              start_date: eventInfo.start_date,
-              end_date: eventInfo.end_date,
-              location: eventInfo.location,
-              website: result.url,
-              industry: industry,
-              organizer: eventInfo.organizer
+        // Scrape event details using Firecrawl - ONLY IN DEVELOPMENT
+        let eventInfo;
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[Dev Only] Attempting to scrape event details via Firecrawl for: ${result.url}`)
+          // Ensure use_mcp_tool is defined or handled if you intend to use it in dev
+          // For now, we assume this block might not run if use_mcp_tool is not set up for Node scripts
+          if (typeof use_mcp_tool === 'function') { 
+            const scrapeResult = await use_mcp_tool({
+              server_name: 'github.com/mendableai/firecrawl-mcp-server',
+              tool_name: 'firecrawl_scrape',
+              arguments: {
+                url: result.url,
+                formats: ['markdown'],
+                onlyMainContent: true
+              }
             });
+            if (scrapeResult && scrapeResult.markdown) {
+              eventInfo = extractEventInfo(scrapeResult.markdown, result.title, result.url);
+            }
+          } else {
+            console.warn('[Dev Only] use_mcp_tool is not available. Skipping Firecrawl scrape.');
+            // Fallback: Use basic info from Brave result if Firecrawl fails or is skipped
+            eventInfo = { name: result.title, url: result.url, date: 'N/A', location: 'N/A', description: result.description || result.title };
           }
+        } else {
+          console.log('[Prod] Skipping Firecrawl scrape for event details.');
+          // Fallback for production: Use basic info from Brave result
+          eventInfo = { name: result.title, url: result.url, date: 'N/A', location: 'N/A', description: result.description || result.title };
+        }
+
+        if (eventInfo && eventInfo.name && result.url) { // Ensure we have a title and URL
+          // Prepare data for Supabase, ensuring correct types and handling missing values
+          const supabaseEvent = {
+            title: eventInfo.name, // Map name to title
+            description: eventInfo.description || null,
+            url: result.url, // Use the result URL which is guaranteed
+            // Attempt to parse dates, default to null if invalid
+            event_date_start: eventInfo.start_date && !isNaN(new Date(eventInfo.start_date)) ? new Date(eventInfo.start_date).toISOString() : null,
+            event_date_end: eventInfo.end_date && !isNaN(new Date(eventInfo.end_date)) ? new Date(eventInfo.end_date).toISOString() : null,
+            location: eventInfo.location === 'N/A' ? null : eventInfo.location, // Handle 'N/A'
+            city: null, // Add if extractEventInfo provides it
+            country: null, // Add if extractEventInfo provides it
+            industry: industry, // Already correct
+            source: 'BraveSearch', // Indicate source
+            // organizer: eventInfo.organizer || null // Add if extractEventInfo provides it
+          };
+          events.push(supabaseEvent);
         }
       } catch (error) {
         console.error('Error processing event:', error);
@@ -233,8 +303,11 @@ async function loadUpcomingEvents(industry) {
     // Store events in Supabase
     for (const event of events) {
       const { error } = await supabaseClient
-        .from('industry_events')
-        .upsert(event, { onConflict: 'name, start_date' });
+        .from('events') // Corrected table name
+        .upsert(event, { 
+          onConflict: 'url', // Correct conflict target
+          ignoreDuplicates: false // Ensure updates happen if URL exists
+         }); 
       
       if (error) {
         console.error('Error storing event:', error);
@@ -428,15 +501,17 @@ function generateMockEvents(industry, count) {
     
     // Create event object
     const event = {
-      id: events.length + 1,
-      name: name,
+      title: name,
       description: `Join industry leaders and professionals for the premier ${industry} event of the year. Featuring keynote speakers, workshops, networking opportunities, and the latest innovations in ${industry} technology and practices.`,
-      start_date: startDate.toISOString().split('T')[0],
-      end_date: endDate.toISOString().split('T')[0],
+      url: `https://www.${industry}conference${Math.floor(Math.random() * 100)}.com`,
+      event_date_start: startDate.toISOString().split('T')[0],
+      event_date_end: endDate.toISOString().split('T')[0],
       location: locations[Math.floor(Math.random() * locations.length)],
-      website: `https://www.${industry}conference${Math.floor(Math.random() * 100)}.com`,
+      city: null, // Add if extractEventInfo provides it
+      country: null, // Add if extractEventInfo provides it
       industry: industry,
-      organizer: organizers[Math.floor(Math.random() * organizers.length)]
+      source: 'Mock',
+      // organizer: organizers[Math.floor(Math.random() * organizers.length)]
     };
     
     events.push(event);
@@ -446,23 +521,38 @@ function generateMockEvents(industry, count) {
 }
 
 /**
- * Fetch data from Brave Search API
+ * Fetch data from Brave Search API (Directly)
  * @param {string} query - Search query
  * @param {number} count - Number of results to return
  * @returns {Promise<Array>} - Array of search results
  */
 async function fetchFromBraveSearch(query, count = 10) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY || process.env.VITE_BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    console.error('Brave Search API key not found in environment variables for initialDataLoader.js');
+    return [];
+  }
+
+  const effectiveCount = Math.min(count, 20); // Cap at 20
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${effectiveCount}`;
+
   try {
-    const response = await use_mcp_tool({
-      server_name: 'brave',
-      tool_name: 'brave_web_search',
-      arguments: {
-        query: query,
-        count: count
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-Subscription-Token': apiKey,
+      },
     });
-    
-    return response.results || [];
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`Brave Search API request failed with status ${response.status}: ${errorBody}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.web && data.web.results ? data.web.results.map(r => ({ title: r.title, url: r.url, description: r.description })) : [];
   } catch (error) {
     console.error('Error fetching from Brave Search:', error);
     return [];

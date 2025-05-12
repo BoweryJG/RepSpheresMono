@@ -310,7 +310,10 @@ const storeNewsArticles = async (articles, industry) => {
   for (const article of processedArticles) {
     const { error } = await supabaseClient
       .from('news_articles')
-      .upsert(article, { onConflict: 'url' });
+      .upsert(article, { 
+        onConflict: 'url',
+        ignoreDuplicates: true // Explicitly ignore if URL already exists
+      });
   
     if (error) throw error;
   }

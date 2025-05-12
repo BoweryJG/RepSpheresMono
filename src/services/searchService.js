@@ -1,4 +1,5 @@
 // Service for fetching company data from Brave search and Firecrawl
+import 'dotenv/config'; // Load .env file into process.env
 import { supabaseClient } from './supabase/supabaseClient.js';
 
 /**
@@ -64,7 +65,7 @@ const fetchCompaniesFromExternalSources = async (industry, limit = 10) => {
         
         // Create a company object with the data we have
         const company = {
-          id: companies.length + 1,
+          // Remove the manual ID: Supabase will generate its own primary key
           name: companyName,
           industry: industry.toLowerCase(),
           description: companyDetails.description || result.description || '',
@@ -72,15 +73,15 @@ const fetchCompaniesFromExternalSources = async (industry, limit = 10) => {
           website: companyDetails.website || result.url || '',
           headquarters: companyDetails.headquarters || '',
           founded: companyDetails.founded || null,
-          timeInMarket: companyDetails.founded ? (new Date().getFullYear() - companyDetails.founded) : null,
-          parentCompany: companyDetails.parentCompany || '',
-          employeeCount: companyDetails.employeeCount || '',
+          time_in_market: companyDetails.founded ? (new Date().getFullYear() - companyDetails.founded) : null,
+          parent_company: companyDetails.parentCompany || '',
+          employee_count: companyDetails.employeeCount || '', 
           revenue: companyDetails.revenue || '',
-          marketCap: companyDetails.marketCap || '',
-          marketShare: companyDetails.marketShare || Math.random() * 15 + 5, // Random value between 5-20%
-          growthRate: companyDetails.growthRate || Math.random() * 10 + 5, // Random value between 5-15%
-          keyOfferings: companyDetails.keyOfferings || generateKeyOfferings(industry),
-          topProducts: companyDetails.topProducts || generateTopProducts(companyName, industry),
+          market_cap: companyDetails.marketCap || '', 
+          market_share: companyDetails.marketShare || Math.random() * 15 + 5, 
+          growth_rate: companyDetails.growthRate || Math.random() * 10 + 5, 
+          key_offerings: companyDetails.keyOfferings || generateKeyOfferings(industry), 
+          top_products: companyDetails.topProducts || generateTopProducts(companyName, industry), 
           stock_symbol: companyDetails.stockSymbol || '',
           stock_exchange: companyDetails.stockExchange || ''
         };
@@ -108,33 +109,42 @@ const fetchCompaniesFromExternalSources = async (industry, limit = 10) => {
 };
 
 /**
- * Fetch data from Brave Search using MCP
+ * Fetch data from Brave Search using API
  * @param {string} query - Search query
  * @param {number} count - Number of results to return
  * @returns {Promise<Array>} - Array of search results
  */
 const fetchFromBraveSearch = async (query, count = 10) => {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY || process.env.VITE_BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    console.error('Brave Search API key is not set in environment variables for searchService.js.');
+    return [];
+  }
+
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}`;
+  console.log(`Making direct call to Brave Search API with query: "${query}"`);
+
   try {
-    console.log(`Making call to Brave Search MCP with query: "${query}"`);
-    
-    // Use the Brave Search MCP
-    const response = await use_mcp_tool({
-      server_name: 'brave',
-      tool_name: 'brave_web_search',
-      arguments: {
-        query: query,
-        count: count
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-Subscription-Token': apiKey,
+      },
     });
-    
-    if (!response || !response.results) {
-      throw new Error('Brave search MCP returned no results');
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`Brave Search API request failed with status ${response.status}: ${errorBody}`);
+      return [];
     }
-    
-    console.log(`Received ${response.results.length} results from Brave Search MCP`);
-    return response.results || [];
+
+    const data = await response.json();
+    const results = data.web && data.web.results ? data.web.results.map(r => ({ title: r.title, url: r.url, description: r.description })) : [];
+    console.log(`Received ${results.length} results from Brave Search API`);
+    return results;
   } catch (error) {
-    console.error('Error with Brave Search MCP:', error);
+    console.error('Error fetching from Brave Search API:', error);
     return [];
   }
 };
@@ -170,26 +180,31 @@ const fetchCompanyDetailsWithFirecrawl = async (companyName, industry) => {
     // If we have a website, scrape it for information
     if (companyWebsite) {
       try {
-        console.log(`Scraping company website: ${companyWebsite} using Firecrawl MCP`);
-        
-        // Use the Firecrawl MCP
-        const scrapeResult = await use_mcp_tool({
-          server_name: 'github.com/mendableai/firecrawl-mcp-server',
-          tool_name: 'firecrawl_scrape',
-          arguments: {
-            url: companyWebsite,
-            formats: ['markdown'],
-            onlyMainContent: true
+        if (process.env.NODE_ENV !== 'production' && typeof use_mcp_tool === 'function') {
+          console.log(`[Dev Only] Scraping company website: ${companyWebsite} using Firecrawl MCP`);
+          
+          // Use the Firecrawl MCP
+          const scrapeResult = await use_mcp_tool({
+            server_name: 'github.com/mendableai/firecrawl-mcp-server',
+            tool_name: 'firecrawl_scrape',
+            arguments: {
+              url: companyWebsite,
+              formats: ['markdown'],
+              onlyMainContent: true
+            }
+          });
+          
+          if (scrapeResult && scrapeResult.markdown) {
+            console.log(`Successfully scraped content from ${companyWebsite}`);
+            // Extract information from the scraped content
+            return extractCompanyDetailsFromContent(scrapeResult.markdown, companyName);
           }
-        });
-        
-        if (scrapeResult && scrapeResult.markdown) {
-          console.log(`Successfully scraped content from ${companyWebsite}`);
-          // Extract information from the scraped content
-          return extractCompanyDetailsFromContent(scrapeResult.markdown, companyName);
+        } else {
+          console.log(`[Prod/No MCP] Skipping Firecrawl scrape for ${companyWebsite}.`);
         }
       } catch (scrapeError) {
-        console.error('Error scraping company website:', scrapeError);
+        console.error('Error scraping company website with Firecrawl:', scrapeError);
+        // Fall through to Brave search for info if scraping fails
       }
     }
     

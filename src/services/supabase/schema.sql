@@ -174,44 +174,22 @@ CREATE TABLE IF NOT EXISTS top_providers (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS)
-ALTER TABLE dental_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aesthetic_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dental_procedures ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aesthetic_procedures ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dental_market_growth ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aesthetic_market_growth ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dental_demographics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aesthetic_demographics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dental_gender_distribution ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aesthetic_gender_distribution ENABLE ROW LEVEL SECURITY;
-ALTER TABLE metropolitan_markets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE market_size_by_state ENABLE ROW LEVEL SECURITY;
-ALTER TABLE growth_rates_by_region ENABLE ROW LEVEL SECURITY;
-ALTER TABLE regions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE procedures_by_region ENABLE ROW LEVEL SECURITY;
-ALTER TABLE demographics_by_region ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gender_split_by_region ENABLE ROW LEVEL SECURITY;
-ALTER TABLE top_providers ENABLE ROW LEVEL SECURITY;
-
--- Create access policies
--- Example policy for authenticated users
-CREATE POLICY "Allow public to read data" 
-ON dental_procedures 
-FOR SELECT 
-TO anon 
-USING (true);
-
--- Create similar policies for all tables
-
--- NOTE: The contacts table/tab should remain private. If/when a contacts table is added, ensure its SELECT policy is restricted to authenticated users only:
--- Example:
--- CREATE POLICY "Allow authenticated users to read contacts" 
--- ON contacts 
--- FOR SELECT 
--- TO authenticated 
--- USING (true);
-
+-- Events table
+CREATE TABLE IF NOT EXISTS events (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  url TEXT UNIQUE NOT NULL,
+  event_date_start TIMESTAMP WITH TIME ZONE,
+  event_date_end TIMESTAMP WITH TIME ZONE,
+  location TEXT,
+  city TEXT,
+  country TEXT,
+  industry TEXT NOT NULL,
+  source TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- Companies table
 CREATE TABLE IF NOT EXISTS companies (
@@ -222,16 +200,16 @@ CREATE TABLE IF NOT EXISTS companies (
   logo_url TEXT,
   website TEXT,
   headquarters TEXT,
-  founded INTEGER,
-  timeInMarket INTEGER,
-  parentCompany TEXT,
-  employeeCount TEXT,
-  revenue TEXT,
-  marketCap TEXT,
-  marketShare NUMERIC(5,2),
-  growthRate NUMERIC(5,2),
-  keyOfferings TEXT[],
-  topProducts TEXT[],
+  founded INTEGER, 
+  time_in_market INTEGER, 
+  parent_company TEXT,
+  employee_count TEXT, 
+  revenue TEXT, 
+  market_cap TEXT, 
+  market_share NUMERIC(5,2), 
+  growth_rate NUMERIC(5,2), 
+  key_offerings TEXT[], 
+  top_products TEXT[], 
   stock_symbol TEXT,
   stock_exchange TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -245,7 +223,7 @@ CREATE TABLE IF NOT EXISTS news_articles (
   summary TEXT,
   content TEXT,
   image_url TEXT,
-  url TEXT NOT NULL,
+  url TEXT NOT NULL UNIQUE,
   published_date TIMESTAMP WITH TIME ZONE,
   author TEXT,
   source TEXT,
@@ -277,14 +255,14 @@ CREATE TABLE IF NOT EXISTS news_sources (
 -- Trending topics table
 CREATE TABLE IF NOT EXISTS trending_topics (
   id SERIAL PRIMARY KEY,
-  topic TEXT NOT NULL,
   industry TEXT NOT NULL,
-  popularity INTEGER,
-  trend_direction TEXT,
-  percentage_change INTEGER,
-  related_terms TEXT[],
+  topic TEXT NOT NULL, 
+  keywords TEXT, 
+  relevance_score NUMERIC(10,4), 
+  source_articles_count INTEGER, 
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT uq_industry_topic UNIQUE (industry, topic) 
 );
 
 -- Industry events table
@@ -302,7 +280,26 @@ CREATE TABLE IF NOT EXISTS industry_events (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS) for new tables
+-- Enable Row Level Security (RLS)
+ALTER TABLE dental_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aesthetic_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dental_procedures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aesthetic_procedures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dental_market_growth ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aesthetic_market_growth ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dental_demographics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aesthetic_demographics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dental_gender_distribution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aesthetic_gender_distribution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE metropolitan_markets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE market_size_by_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE growth_rates_by_region ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE procedures_by_region ENABLE ROW LEVEL SECURITY;
+ALTER TABLE demographics_by_region ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gender_split_by_region ENABLE ROW LEVEL SECURITY;
+ALTER TABLE top_providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE news_articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE news_categories ENABLE ROW LEVEL SECURITY;
@@ -310,39 +307,72 @@ ALTER TABLE news_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trending_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE industry_events ENABLE ROW LEVEL SECURITY;
 
--- Create access policies for new tables
+-- Create access policies
+-- Example policy for authenticated users
+CREATE POLICY "Allow public to read data" 
+ON dental_procedures 
+FOR SELECT 
+TO anon 
+USING (true);
+
+-- Create similar policies for all tables
+
+-- NOTE: The contacts table/tab should remain private. If/when a contacts table is added, ensure its SELECT policy is restricted to authenticated users only:
+-- Example:
+-- CREATE POLICY "Allow authenticated users to read contacts" 
+-- ON contacts 
+-- FOR SELECT 
+-- TO authenticated 
+-- USING (true);
+
+-- Create access policies for events table
+CREATE POLICY "Allow public to read events" 
+ON events 
+FOR SELECT 
+TO anon 
+USING (true);
+
+CREATE POLICY "Allow authenticated users to insert events" 
+ON events 
+FOR INSERT 
+TO authenticated 
+WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated users to update their own events" 
+ON events 
+FOR UPDATE 
+TO authenticated 
+USING (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = events.created_by_user_id))
+WITH CHECK (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = events.created_by_user_id));
+
+CREATE POLICY "Allow authenticated users to delete their own events" 
+ON events 
+FOR DELETE 
+TO authenticated 
+USING (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = events.created_by_user_id));
+
+-- Create access policies for companies table
 CREATE POLICY "Allow public to read companies" 
 ON companies 
 FOR SELECT 
 TO anon 
 USING (true);
 
-CREATE POLICY "Allow public to read news articles" 
-ON news_articles 
-FOR SELECT 
-TO anon 
-USING (true);
+CREATE POLICY "Allow authenticated users to insert companies" 
+ON companies 
+FOR INSERT 
+TO authenticated 
+WITH CHECK (true);
 
-CREATE POLICY "Allow public to read news categories" 
-ON news_categories 
-FOR SELECT 
-TO anon 
-USING (true);
+CREATE POLICY "Allow authenticated users to update their own companies" 
+ON companies 
+FOR UPDATE 
+TO authenticated 
+USING (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = companies.created_by_user_id))
+WITH CHECK (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = companies.created_by_user_id));
 
-CREATE POLICY "Allow public to read news sources" 
-ON news_sources 
-FOR SELECT 
-TO anon 
-USING (true);
-
-CREATE POLICY "Allow public to read trending topics" 
-ON trending_topics 
-FOR SELECT 
-TO anon 
-USING (true);
-
-CREATE POLICY "Allow public to read industry events" 
-ON industry_events 
-FOR SELECT 
-TO anon 
-USING (true);
+CREATE POLICY "Allow authenticated users to delete their own companies" 
+ON companies 
+FOR DELETE 
+TO authenticated 
+USING (auth.uid() = (SELECT user_id FROM user_profiles WHERE user_profiles.id = companies.created_by_user_id));

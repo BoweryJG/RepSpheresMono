@@ -1,3 +1,5 @@
+import 'dotenv/config'; // Load .env file into process.env
+
 /**
  * News Service
  * 
@@ -205,8 +207,13 @@ export const fetchNewsFromExternalSources = async (industry, options = {}) => {
  * @returns {Promise<Array>} - Array of search results
  */
 const searchWithFirecrawl = async (query, count = 10) => {
+  if (process.env.NODE_ENV === 'production' || typeof use_mcp_tool !== 'function') {
+    console.log('[Prod/No MCP] Skipping Firecrawl search. Will rely on Brave Search if available.');
+    return []; // Return empty, let the caller (fetchNewsFromExternalSources) use Brave search
+  }
+
   try {
-    console.log(`Making call to Firecrawl MCP for search: ${query}`);
+    console.log(`[Dev Only] Making call to Firecrawl MCP for search: ${query}`);
     
     // Use the Firecrawl MCP search tool
     const searchResult = await use_mcp_tool({
@@ -252,36 +259,46 @@ const searchWithFirecrawl = async (query, count = 10) => {
  * @returns {Promise<Array>} - Array of search results
  */
 const fetchFromBraveSearch = async (query, count = 10) => {
-  const apiKey = import.meta.env.VITE_BRAVE_SEARCH_API_KEY;
+  // Ensure correct environment variable access for Node.js scripts
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY || process.env.VITE_BRAVE_SEARCH_API_KEY;
+  
   if (!apiKey) {
-    throw new Error('Missing VITE_BRAVE_SEARCH_API_KEY environment variable');
+    console.error('Brave Search API key not found in environment variables for newsService.js');
+    return []; // Return empty array if API key is missing
   }
-  // Replace direct Brave Search API URL with proxied route
-  const url = `/api/brave-search?size=${count}&q=${encodeURIComponent(query)}`;
-  console.log(`Fetching ${count} results from Brave Search API for query: "${query}"`);
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'x-subscription-token': apiKey // Fixed header name to match what Brave API expects
+  
+  // Brave Search API count parameter has a maximum of 20.
+  const effectiveCount = Math.min(count, 20);
+
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${effectiveCount}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-Subscription-Token': apiKey
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Brave Search API request failed: ${response.status} ${response.statusText}`, errorText);
+      return [];
     }
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Brave Search API error: ${res.status} - ${text}`);
+    
+    const data = await response.json();
+    // Transform the Brave API response to match the expected structure (e.g., { title, url, description })
+    return data.web && data.web.results ? data.web.results.map(r => ({ 
+      title: r.title, 
+      url: r.url, 
+      description: r.description 
+      // Add other fields if your processing logic expects them directly from search
+    })) : [];
+  } catch (error) {
+    console.error('Error fetching from Brave Search API:', error);
+    return [];
   }
-  const json = await res.json();
-  const results = json.data?.results || [];
-  console.log(`Received ${results.length} results from Brave Search API`);
-  // Map to article format
-  return results.map(item => ({
-    id: item.url,
-    title: item.title,
-    url: item.url,
-    summary: item.description || '',
-    image_url: item.thumbnail?.url || item.image?.url || item.image || '',
-    source: item.source || '',
-    published_date: item.publish_time || ''
-  }));
 };
 
 /**
@@ -290,8 +307,13 @@ const fetchFromBraveSearch = async (query, count = 10) => {
  * @returns {Promise<Object>} - Article details
  */
 const fetchArticleDetailsWithFirecrawl = async (url) => {
+  if (process.env.NODE_ENV === 'production' || typeof use_mcp_tool !== 'function') {
+    console.log(`[Prod/No MCP] Skipping Firecrawl article details scrape for: ${url}`);
+    return { summary: '', content: '', image_url: '', published_date: null, author: '' }; // Return empty/default details
+  }
+
   try {
-    console.log(`Making call to Firecrawl MCP for URL: ${url}`);
+    console.log(`[Dev Only] Scraping article details: ${url} using Firecrawl MCP`);
     
     // Use the Firecrawl MCP
     const scrapeResult = await use_mcp_tool({
@@ -541,13 +563,17 @@ const storeArticlesInSupabase = async (articles) => {
     for (const article of articles) {
       const { error } = await supabaseClient
         .from('news_articles')
-        .upsert(article, { onConflict: 'url, industry' });
+        .upsert(article, { 
+          onConflict: 'url', // Corrected: Use only the 'url' column for conflict
+          ignoreDuplicates: true 
+        });
       
       if (error) {
+        // Log the error but don't throw, allow other articles to process
         console.error('Error storing article in Supabase:', error);
       }
     }
-    console.log(`Stored ${articles.length} articles in Supabase`);
+    console.log(`Attempted to store ${articles.length} articles in Supabase`);
   } catch (error) {
     console.error('Error storing articles in Supabase:', error);
   }

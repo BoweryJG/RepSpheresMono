@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run setup-netlify && vite build",
     "preview": "vite preview",
     "load-data": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js",
     "load-procedures": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/runDataLoader.mjs",
@@ -21,7 +21,8 @@
     "refresh-supabase": "node refresh-supabase-data.js",
     "refresh-all-data": "./refresh-all-data.sh",
     "start-mcp": "node start-mcp-server.js",
-    "dev-with-mcp": "concurrently \"npm run start-mcp\" \"npm run dev\""
+    "dev-with-mcp": "concurrently \"npm run start-mcp\" \"npm run dev\"",
+    "setup-netlify": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/setupSchema.js && node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js"
   },
   "type": "module",
   "repository": {
@@ -47,6 +48,8 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "@supabase/supabase-js": "^2.49.4",
+    "colors": "^1.4.0",
+    "dotenv": "^16.5.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^7.5.3",

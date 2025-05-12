@@ -8,7 +8,12 @@
  */
 export const registerSupabaseMcp = () => {
   try {
-    console.log('Registering Supabase MCP server...');
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Supabase MCP server registration skipped in production environment.');
+      return true; // Still indicate success, but do nothing
+    }
+
+    console.log('Registering Supabase MCP server (development)...');
     
     // Create the MCP servers object if it doesn't exist
     if (!window.mcpServers) {

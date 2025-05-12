@@ -1,11 +1,11 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabaseClient.js';
 import { 
   dentalProcedures, 
   dentalCategories, 
   dentalMarketGrowth, 
   dentalDemographics, 
   dentalGenderDistribution 
-} from '../../data/dentalProcedures';
+} from '../../data/dentalProcedures.js';
 
 import { 
   aestheticProcedures, 
@@ -13,12 +13,12 @@ import {
   aestheticMarketGrowth, 
   aestheticDemographics, 
   aestheticGenderDistribution 
-} from '../../data/aestheticProcedures';
+} from '../../data/aestheticProcedures.js';
 
 import {
   dentalCompanies,
   aestheticCompanies
-} from '../../data/dentalCompanies';
+} from '../../data/dentalCompanies.js';
 
 import { 
   metropolitanMarkets,
@@ -27,7 +27,7 @@ import {
   proceduresByRegion,
   demographicsByRegion,
   topProvidersByMarket
-} from '../../data/metropolitanMarkets';
+} from '../../data/metropolitanMarkets.js';
 
 /**
  * Main data loading function that loads all market data to Supabase
@@ -124,14 +124,20 @@ const loadProcedures = async () => {
     const { error } = await supabase
       .from('dental_procedures_simplified')
       .upsert({
-        procedure_name: procedure.name,
+        name: procedure.name,
         category_id: dentalCategoryMap[procedure.category],
+        category: procedure.category,
+        description: procedure.trends || "No trend data available",
         yearly_growth_percentage: procedure.growth,
         market_size_2025_usd_millions: procedure.marketSize2025,
-        age_range: procedure.primaryAgeGroup,
-        recent_trends: procedure.trends,
-        future_outlook: procedure.futureOutlook
-      }, { onConflict: 'procedure_name' });
+        complexity: "Medium",
+        avg_duration_min: 45,
+        robotics_ai_used: false,
+        digital_workflow: true,
+        common_complications: "None reported",
+        fda_status: "Approved",
+        cpt_cdt_code: "N/A"
+      }, { onConflict: 'name' });
     
     if (error) throw error;
   }
