@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run setup-netlify && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "load-data": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js",
     "load-procedures": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/runDataLoader.mjs",
