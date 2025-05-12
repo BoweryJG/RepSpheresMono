@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import DiagnosticsPanel from './DiagnosticsPanel';
 import { 
   Box, 
   Container, 
@@ -487,6 +488,9 @@ export default function Dashboard({ mcpEnabled = false, backendConnected = false
           isDental={isDental}
         />
       )}
+      
+      {/* Diagnostics Panel for Netlify troubleshooting */}
+      <DiagnosticsPanel />
       
       {/* Footer */}
       <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>

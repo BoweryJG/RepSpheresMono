@@ -1,11 +1,29 @@
 [build]
   publish = "dist"
-  command = "npm run build"
+  command = "npm run setup-netlify && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
+  # Ensure Netlify knows this is a SPA
+  NETLIFY_USE_REDIRECTS = "true"
+  # Add Supabase Environment Variables
+  VITE_SUPABASE_URL = "https://cbopynuvhcymbumjnvay.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNib3B5bnV2aGN5bWJ1bWpudmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5OTUxNzMsImV4cCI6MjA1OTU3MTE3M30.UZElMkoHugIt984RtYWyfrRuv2rB67opQdCrFVPCfzU"
+  # API Configuration
+  VITE_API_BASE_URL = "https://osbackend-zl1h.onrender.com"
+  # Brave Search Configuration
+  VITE_BRAVE_SEARCH_API_KEY = "BSAOEv8Mlo4-5qq_Bk5LhCkFREUJhDN"
+  # Gemini API Configuration
+  VITE_GEMINI_API_KEY = "AIzaSyAm2IKo2N8e0-1p_zuRMppyMfazWCEQLs8"
   
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Add logging for debugging
+[dev]
+  framework = "vite"
+  
+[functions]
+  node_bundler = "esbuild"

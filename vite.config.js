@@ -2,7 +2,18 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), ''); // Load all env variables, VITE_ ones will be on env.VITE_YOUR_KEY
+  // Load all env variables regardless of the environment
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  // Log build environment info for debugging
+  console.log(`Building in ${mode} mode`);
+  console.log('Environment variables loaded:', Object.keys(env).filter(key => key.startsWith('VITE_')).length);
+  
+  // For Netlify deployment, ensure we detect the environment correctly
+  const isNetlify = process.env.NETLIFY === 'true' || env.NETLIFY === 'true';
+  if (isNetlify) {
+    console.log('Building for Netlify deployment');
+  }
 
   return {
     plugins: [react()],
@@ -23,7 +34,25 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       minify: 'terser',
-      sourcemap: true
+      sourcemap: mode !== 'production', // Only generate sourcemaps in development
+      // Add specific optimizations for production
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            mui: ['@mui/material', '@mui/icons-material'],
+            charts: ['recharts', 'react-simple-maps']
+          }
+        }
+      },
+      // Add console logging to help debug Netlify builds
+      reportCompressedSize: true,
+      chunkSizeWarningLimit: 1000
+    },
+    define: {
+      // Make environment mode available to the app
+      '__APP_ENV__': JSON.stringify(mode),
+      '__IS_NETLIFY__': isNetlify
     }
   };
 });
