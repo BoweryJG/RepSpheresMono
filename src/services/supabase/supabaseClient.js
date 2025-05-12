@@ -51,51 +51,108 @@ const isProduction =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
   (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
 console.log(`[Supabase] Initializing in ${isProduction ? 'production' : 'development'} environment`);
-if (supabaseUrl) {
-  // Only show partial URL for security
-  // Add safeguard for undefined or non-string values
-  const urlToDisplay = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
-  console.log(`[Supabase] Using URL: ${urlToDisplay.substring(0, 30)}...`);
+
+// Only show partial URL for security with extra safeguards
+try {
+  if (supabaseUrl) {
+    // Extreme safeguards for string operations
+    const urlToDisplay = String(supabaseUrl || '');
+    const displayLength = Math.min(30, urlToDisplay.length);
+    console.log(`[Supabase] Using URL: ${urlToDisplay.slice(0, displayLength)}...`);
+  }
+} catch (e) {
+  console.log('[Supabase] Error displaying URL');
 }
 
-// Ensure we have valid string values for createClient
-const safeSupabaseUrl = typeof supabaseUrl === 'string' ? supabaseUrl : String(supabaseUrl || '');
-const safeSupabaseAnonKey = typeof supabaseAnonKey === 'string' ? supabaseAnonKey : String(supabaseAnonKey || '');
-
-// Create Supabase client with explicit options and enhanced error handling
-export const supabase = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  global: {
-    headers: {
-      'x-application-name': 'market-insights-dashboard',
-      'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
-    },
-    // Add safeguards for string operations
-    fetch: (url, options) => {
-      // Ensure URL is a string before any operations are performed on it
-      const safeUrl = typeof url === 'string' ? url : String(url || '');
-      return fetch(safeUrl, options);
-    }
-  },
-  db: {
-    schema: 'public'
-  },
-  // Enhanced error handling for Netlify deployment
-  realtime: {
-    params: {
-      eventsPerSecond: 1 // Limit realtime events to prevent Netlify function timeout
-    }
+// Create a safe wrapper around the Supabase client
+const createSafeSupabaseClient = () => {
+  try {
+    // Ensure we have valid string values for createClient with extreme safeguards
+    const safeSupabaseUrl = String(supabaseUrl || '');
+    const safeSupabaseAnonKey = String(supabaseAnonKey || '');
+    
+    // Create the actual Supabase client
+    const client = createClient(safeSupabaseUrl, safeSupabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      },
+      global: {
+        headers: {
+          'x-application-name': 'market-insights-dashboard',
+          'x-deployment-env': isProduction ? 'netlify-prod' : 'development'
+        }
+      },
+      db: {
+        schema: 'public'
+      },
+      // Enhanced error handling for Netlify deployment
+      realtime: {
+        params: {
+          eventsPerSecond: 1 // Limit realtime events to prevent Netlify function timeout
+        }
+      }
+    });
+    
+    // Create a proxy to intercept all method calls and add error handling
+    return new Proxy(client, {
+      get: function(target, prop) {
+        // Get the original property
+        const originalValue = target[prop];
+        
+        // If it's not a function, just return it
+        if (typeof originalValue !== 'function') {
+          return originalValue;
+        }
+        
+        // If it's a function, wrap it with error handling
+        return function(...args) {
+          try {
+            const result = originalValue.apply(target, args);
+            
+            // If the result is a promise, add error handling
+            if (result && typeof result.then === 'function') {
+              return result.catch(err => {
+                console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+                throw err;
+              });
+            }
+            
+            return result;
+          } catch (err) {
+            console.error(`[Supabase] Error in ${String(prop)} method:`, err);
+            throw err;
+          }
+        };
+      }
+    });
+  } catch (err) {
+    console.error('[Supabase] Failed to create client:', err);
+    // Return a dummy client that won't throw errors
+    return {
+      from: () => ({ select: () => ({ data: null, error: { message: 'Client initialization failed' } }) }),
+      auth: { 
+        onAuthStateChange: (callback) => {
+          console.log('[Supabase] Auth state change listener registered on dummy client');
+          return { data: { subscription: { unsubscribe: () => {} } } };
+        }
+      }
+    };
   }
-});
+};
+
+// Create the safe Supabase client
+export const supabase = createSafeSupabaseClient();
 
 // Check connection and log initialization status
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log(`[Supabase] Auth state changed: ${event}`);
-});
+try {
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log(`[Supabase] Auth state changed: ${event}`);
+  });
+} catch (e) {
+  console.error('[Supabase] Error setting up auth state change listener:', e);
+}
 
 // Perform a simple test query to check connectivity
 const testConnection = async () => {
@@ -113,9 +170,15 @@ const testConnection = async () => {
   }
 };
 
-// Run test connection in background
+// Run test connection in background with extra error handling
 if (typeof window !== 'undefined') {
-  setTimeout(() => testConnection(), 1000);
+  setTimeout(() => {
+    try {
+      testConnection();
+    } catch (e) {
+      console.error('[Supabase] Error running connection test:', e);
+    }
+  }, 1000);
 }
 
 // Export for backward compatibility
