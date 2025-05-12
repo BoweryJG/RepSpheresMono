@@ -17,10 +17,13 @@ const getEnv = (key, defaultValue) => {
   }
   
   // Check for process.env (Node.js environment, including Netlify functions)
-  if (typeof process !== 'undefined' && process.env) {
-    if (process.env[key]) {
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
       return process.env[key];
     }
+  } catch (e) {
+    // Ignore process is not defined errors in browser context
+    console.log(`[Supabase] Environment fallback: ${e.message}`);
   }
   
   // If we're in production, log that we're using default values
