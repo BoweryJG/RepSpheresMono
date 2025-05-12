@@ -10,6 +10,10 @@
    - Default API keys were hardcoded in the client code, risking security exposure
    - These should only be accessed via environment variables
 
+3. **"Cannot read properties of undefined (reading 'PROD')" in Node.js**
+   - Error occurred during Netlify build process when the Supabase client tried to access `import.meta.env.PROD` in a Node.js environment
+   - This was causing the build to fail with `TypeError: Cannot read properties of undefined (reading 'PROD')`
+
 ## Implemented Solutions
 
 ### 1. Fixed process.env in Browser Environment
@@ -43,21 +47,43 @@ Updated `src/services/supabase/supabaseClient.js` to:
    const DEFAULT_ANON_KEY = '...'
    ```
 
-2. Improve environment variable access strategy:
+2. Improve environment variable access strategy for both browser and Node.js environments:
    ```js
    const getEnv = (key, defaultValue = '') => {
-     // In browser context, we should only access Vite environment variables
+     // Check browser context (Vite)
      if (typeof import.meta !== 'undefined' && import.meta.env) {
        if (import.meta.env[key]) {
          return import.meta.env[key];
        }
      }
      
-     // We no longer try to access process.env directly in browser context
-     // as it's handled by the Vite define configuration
+     // Check Node.js environment
+     if (typeof process !== 'undefined' && process.env) {
+       if (process.env[key]) {
+         return process.env[key];
+       }
+     }
+     
+     // Safe warning that works in both environments
+     if (!defaultValue) {
+       const isProduction = 
+         (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
+         (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
+       
+       if (isProduction) {
+         console.warn(`[Supabase] Missing configuration for ${key} in production environment`);
+       }
+     }
      
      return defaultValue || '';
    };
+   ```
+
+3. Made environment detection work in both browser and Node.js:
+   ```js
+   const isProduction = 
+     (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
+     (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
    ```
 
 ## Testing Results
