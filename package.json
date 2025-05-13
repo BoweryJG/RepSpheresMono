@@ -22,7 +22,10 @@
     "refresh-all-data": "./refresh-all-data.sh",
     "start-mcp": "node start-mcp-server.js",
     "dev-with-mcp": "concurrently \"npm run start-mcp\" \"npm run dev\"",
-    "setup-netlify": "node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/setupSchema.js && node --experimental-json-modules --es-module-specifier-resolution=node src/services/supabase/initialDataLoader.js"
+    "run-dev": "node run-dev-server.js",
+    "test-unified": "node --experimental-json-modules --es-module-specifier-resolution=node test-unified-supabase.js",
+    "setup-views": "node --experimental-json-modules --es-module-specifier-resolution=node setup-views.js",
+    "setup-netlify": "node --experimental-json-modules --es-module-specifier-resolution=node setup-netlify.js"
   },
   "type": "module",
   "repository": {

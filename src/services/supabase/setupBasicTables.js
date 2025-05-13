@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import colors from 'colors';
-import dentalProcedures from '../../data/dentalProcedures.js';
-import aestheticProcedures from '../../data/aestheticProcedures.js';
+import { dentalProcedures } from '../../data/dentalProcedures.js';
+import { aestheticProcedures } from '../../data/aestheticProcedures.js';
 
 colors.enable();
 
@@ -189,14 +189,13 @@ async function loadSampleData() {
     if (dentalProcedures && dentalProcedures.length > 0) {
       // Just take first 5 for testing
       const sampleDentalProcedures = dentalProcedures.slice(0, 5).map(proc => ({
-        procedure_name: proc.procedure_name || 'Unknown',
-        procedure_type: proc.procedure_type || 'General',
-        description: proc.description || 'No description available',
-        average_cost: proc.average_cost || 0,
-        insurance_coverage: !!proc.insurance_coverage,
-        complexity_level: proc.complexity_level || 1,
-        recovery_time: proc.recovery_time || 'None',
-        popularity_score: proc.popularity_score || 5.0
+        procedure_name: proc.name || 'Unknown',
+        category_id: null, // Will need to be set properly in a full implementation
+        yearly_growth_percentage: proc.growth || 0,
+        market_size_2025_usd_millions: proc.marketSize2025 || 0,
+        age_range: proc.primaryAgeGroup || 'All ages',
+        recent_trends: proc.trends || 'No trend data available',
+        future_outlook: proc.futureOutlook || 'No outlook data available'
       }));
       
       const { error: dentalError } = await supabase
@@ -221,20 +220,19 @@ async function loadSampleData() {
     if (aestheticProcedures && aestheticProcedures.length > 0) {
       // Just take first 5 for testing
       const sampleAestheticProcedures = aestheticProcedures.slice(0, 5).map(proc => ({
-        procedure_name: proc.procedure_name || 'Unknown',
-        procedure_type: proc.procedure_type || 'General',
-        description: proc.description || 'No description available',
-        average_cost: proc.average_cost || 0,
-        downtime_days: proc.downtime_days || 0,
-        procedure_risk: proc.procedure_risk || 'Low',
-        popularity_trend: proc.popularity_trend || 'Stable',
-        satisfaction_rate: proc.satisfaction_rate || 0.75
+        name: proc.name || 'Unknown',
+        category_id: null, // Will need to be set properly in a full implementation
+        yearly_growth_percentage: proc.growth || 0,
+        market_size_2025_usd_millions: proc.marketSize2025 || 0,
+        primary_age_group: proc.primaryAgeGroup || 'All ages',
+        trends: proc.trends || 'No trend data available',
+        future_outlook: proc.futureOutlook || 'No outlook data available'
       }));
       
       const { error: aestheticError } = await supabase
         .from('aesthetic_procedures')
         .upsert(sampleAestheticProcedures, {
-          onConflict: 'procedure_name',
+          onConflict: 'name',
           ignoreDuplicates: false
         });
       

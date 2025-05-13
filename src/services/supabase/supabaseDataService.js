@@ -271,15 +271,44 @@ class SupabaseDataService {
   }
   
   /**
-   * Get dental procedures
+   * Get dental procedures - Updated to use the consolidated_procedures view and normalized category structure
    */
   async getDentalProcedures() {
     try {
-      // Direct Supabase connection
-      // Fetch procedures
+      console.log('Fetching dental procedures from updated structure');
+      
+      // First try to use the consolidated view if available
+      try {
+        const { data: procedures, error } = await supabase
+          .from('v_all_procedures')
+          .select('*')
+          .eq('industry', 'dental');
+          
+        if (!error && procedures && procedures.length > 0) {
+          console.log('Successfully retrieved dental procedures from v_all_procedures view');
+          return procedures.map(proc => ({
+            name: proc.name,
+            category: proc.category_label,
+            growth: proc.yearly_growth_percentage,
+            marketSize2025: proc.market_size_2025_usd_millions,
+            primaryAgeGroup: proc.primary_age_group || "All Ages",
+            trends: proc.description || proc.trends || "No trend data available",
+            futureOutlook: proc.future_outlook || "Growth potential",
+            categoryId: proc.category_id
+          }));
+        }
+      } catch (viewError) {
+        console.warn('Could not use v_all_procedures view, falling back to direct query:', viewError.message);
+      }
+      
+      // Fallback to direct query with join
       const { data: procedures, error: procError } = await supabase
         .from('dental_procedures_simplified')
-        .select('*');
+        .select(`
+          *,
+          categories:category_id (id, category_label)
+        `);
+      
       if (procError) throw procError;
       
       if (!procedures || procedures.length === 0) {
@@ -287,24 +316,15 @@ class SupabaseDataService {
         return [];
       }
       
-      // Fetch categories
-      const { data: categories, error: catError } = await supabase
-        .from('categories')
-        .select('id, category_label')
-        .eq('industry', 'dental')
-        .order('position', { ascending: true });
-      if (catError) throw catError;
-      
-      // Map category_id to category name
-      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
-        name: proc.name, // Using 'name' instead of 'procedure_name'
-        category: proc.category || categoryMap[proc.category_id] || '', // Try direct category field first
+        name: proc.name,
+        category: proc.categories?.category_label || proc.category || '',
         growth: proc.yearly_growth_percentage,
         marketSize2025: proc.market_size_2025_usd_millions,
-        primaryAgeGroup: "All Ages", // Default value since field doesn't exist
-        trends: proc.description || "No trend data available", // Using description as trends
-        futureOutlook: "Growth potential"
+        primaryAgeGroup: proc.primary_age_group || "All Ages",
+        trends: proc.description || "No trend data available",
+        futureOutlook: "Growth potential",
+        categoryId: proc.category_id
       }));
     } catch (error) {
       console.error('Error fetching dental procedures:', error);
@@ -314,15 +334,44 @@ class SupabaseDataService {
   }
   
   /**
-   * Get aesthetic procedures
+   * Get aesthetic procedures - Updated to use the consolidated_procedures view and normalized category structure
    */
   async getAestheticProcedures() {
     try {
-      // Direct Supabase connection
-      // Fetch procedures
+      console.log('Fetching aesthetic procedures from updated structure');
+      
+      // First try to use the consolidated view if available
+      try {
+        const { data: procedures, error } = await supabase
+          .from('v_all_procedures')
+          .select('*')
+          .eq('industry', 'aesthetic');
+          
+        if (!error && procedures && procedures.length > 0) {
+          console.log('Successfully retrieved aesthetic procedures from v_all_procedures view');
+          return procedures.map(proc => ({
+            name: proc.name,
+            category: proc.category_label,
+            growth: proc.yearly_growth_percentage,
+            marketSize2025: proc.market_size_2025_usd_millions,
+            primaryAgeGroup: proc.primary_age_group || "All Ages",
+            trends: proc.description || proc.trends || "No trend data available",
+            futureOutlook: proc.future_outlook || "Growth potential",
+            categoryId: proc.category_id
+          }));
+        }
+      } catch (viewError) {
+        console.warn('Could not use v_all_procedures view, falling back to direct query:', viewError.message);
+      }
+      
+      // Fallback to direct query with join
       const { data: procedures, error: procError } = await supabase
         .from('aesthetic_procedures')
-        .select('*');
+        .select(`
+          *,
+          aesthetic_categories:category_id (id, category_label)
+        `);
+      
       if (procError) throw procError;
       
       if (!procedures || procedures.length === 0) {
@@ -330,22 +379,15 @@ class SupabaseDataService {
         return [];
       }
       
-      // Fetch categories
-      const { data: categories, error: catError } = await supabase
-        .from('aesthetic_categories')
-        .select('id, category_label');
-      if (catError) throw catError;
-      
-      // Map category_id to category name
-      const categoryMap = Object.fromEntries(categories.map(cat => [cat.id, cat.category_label]));
       return procedures.map(proc => ({
         name: proc.name,
-        category: categoryMap[proc.category_id] || '',
+        category: proc.aesthetic_categories?.category_label || '',
         growth: proc.yearly_growth_percentage,
         marketSize2025: proc.market_size_2025_usd_millions,
         primaryAgeGroup: proc.primary_age_group,
         trends: proc.trends,
-        futureOutlook: proc.future_outlook
+        futureOutlook: proc.future_outlook,
+        categoryId: proc.category_id
       }));
     } catch (error) {
       console.error('Error fetching aesthetic procedures:', error);
@@ -355,19 +397,20 @@ class SupabaseDataService {
   }
   
   /**
-   * Get dental categories
+   * Get dental categories - Updated for the normalized category structure
    */
   async getDentalCategories() {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('category_label')
+        .select('id, category_label, description, position')
         .eq('industry', 'dental')
         .order('position', { ascending: true });
       
       if (error) throw error;
       
-      return data.map(category => category.category_label);
+      // Return full category objects rather than just labels for more flexibility
+      return data;
     } catch (error) {
       console.error('Error fetching dental categories:', error); 
       return [];
@@ -375,17 +418,19 @@ class SupabaseDataService {
   }
   
   /**
-   * Get aesthetic categories
+   * Get aesthetic categories - Updated for the table structure rather than view
    */
   async getAestheticCategories() {
     try {
       const { data, error } = await supabase
         .from('aesthetic_categories')
-        .select('category_label');
+        .select('id, category_label, description, position')
+        .order('position', { ascending: true });
       
       if (error) throw error;
       
-      return data.map(category => category.category_label);
+      // Return full category objects rather than just labels for more flexibility
+      return data;
     } catch (error) {
       console.error('Error fetching aesthetic categories:', error); 
       return [];
@@ -726,13 +771,125 @@ class SupabaseDataService {
   }
   
   /**
-   * Get dental companies
+   * Search procedures using the new search_procedures function
+   * @param {string} query - Search term
+   * @param {string} industry - Optional industry filter (dental, aesthetic, or both if not specified)
+   * @returns {Promise<Array>} - Search results
+   */
+  async searchProcedures(query, industry) {
+    try {
+      if (!query) {
+        return [];
+      }
+      
+      // Try to use the search_procedures function if available
+      try {
+        let rpcCall = supabase.rpc('search_procedures', { search_term: query });
+        
+        // Add industry filter if specified
+        if (industry) {
+          rpcCall = rpcCall.eq('industry', industry);
+        }
+        
+        const { data, error } = await rpcCall;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          console.log(`Found ${data.length} procedures matching "${query}"`);
+          return data;
+        }
+      } catch (funcError) {
+        console.warn('search_procedures function not available, falling back to basic search:', funcError.message);
+      }
+      
+      // Fallback to basic search using ILIKE
+      let query_str = `%${query}%`;
+      let query_result = [];
+      
+      // Try consolidated view first
+      try {
+        let viewQuery = supabase
+          .from('v_all_procedures')
+          .select('*')
+          .or(`name.ilike.${query_str},description.ilike.${query_str},trends.ilike.${query_str}`);
+          
+        if (industry) {
+          viewQuery = viewQuery.eq('industry', industry);
+        }
+        
+        const { data, error } = await viewQuery;
+        
+        if (!error && data && data.length > 0) {
+          query_result = data;
+        }
+      } catch (viewError) {
+        console.warn('Could not search v_all_procedures view:', viewError.message);
+      }
+      
+      // If no results from view, try individual tables
+      if (query_result.length === 0) {
+        const industries = industry ? [industry] : ['dental', 'aesthetic'];
+        
+        for (const ind of industries) {
+          const tableName = ind === 'dental' ? 'dental_procedures_simplified' : 'aesthetic_procedures';
+          const { data, error } = await supabase
+            .from(tableName)
+            .select('*')
+            .or(`name.ilike.${query_str},description.ilike.${query_str}`);
+            
+          if (!error && data && data.length > 0) {
+            // Add industry field for consistency
+            query_result = [...query_result, ...data.map(item => ({ ...item, industry: ind }))];
+          }
+        }
+      }
+      
+      return query_result;
+    } catch (error) {
+      console.error('Error searching procedures:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get dental companies - Updated to use v_dental_companies view if available
    */
   async getDentalCompanies() {
     try {
+      // Try to use the v_dental_companies view first
+      try {
+        const { data, error } = await supabase
+          .from('v_dental_companies')
+          .select('*');
+          
+        if (!error && data && data.length > 0) {
+          console.log('Successfully retrieved dental companies from v_dental_companies view');
+          return data.map(company => ({
+            ...company,
+            marketShare: parseFloat(company.market_share || company.marketShare) || 0,
+            growthRate: parseFloat(company.growth_rate || company.growthRate) || 0,
+            keyOfferings: this._parseJsonField(company.key_offerings || company.keyOfferings, []),
+            topProducts: this._parseJsonField(company.top_products || company.topProducts, []),
+            timeInMarket: company.time_in_market || company.timeInMarket || 0,
+            // Include categoryInfo if available
+            categoryInfo: company.category_label ? { 
+              id: company.category_id,
+              name: company.category_label 
+            } : null
+          }));
+        }
+      } catch (viewError) {
+        console.warn('Could not use v_dental_companies view, falling back to direct query:', viewError.message);
+      }
+      
+      // Fallback to direct companies table with join to categories
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select(`
+          *,
+          categories:category_id (id, category_label, description)
+        `)
         .eq('industry', 'dental');
       
       if (error) throw error;
@@ -743,7 +900,12 @@ class SupabaseDataService {
         growthRate: parseFloat(company.growthRate) || 0,
         keyOfferings: this._parseJsonField(company.keyOfferings, []),
         topProducts: this._parseJsonField(company.topProducts, []),
-        timeInMarket: company.timeInMarket || 0
+        timeInMarket: company.timeInMarket || 0,
+        // Add category info if available from join
+        categoryInfo: company.categories ? {
+          id: company.categories.id,
+          name: company.categories.category_label
+        } : null
       }));
     } catch (error) {
       console.error('Error fetching dental companies:', error);
@@ -752,13 +914,42 @@ class SupabaseDataService {
   }
   
   /**
-   * Get aesthetic companies
+   * Get aesthetic companies - Updated to use normalized category structure
    */
   async getAestheticCompanies() {
     try {
+      // Try to use a view if available
+      try {
+        const { data, error } = await supabase
+          .from('v_aesthetic_companies')
+          .select('*');
+          
+        if (!error && data && data.length > 0) {
+          console.log('Successfully retrieved aesthetic companies from v_aesthetic_companies view');
+          return data.map(company => ({
+            ...company,
+            marketShare: parseFloat(company.market_share || company.marketShare) || 0,
+            growthRate: parseFloat(company.growth_rate || company.growthRate) || 0,
+            keyOfferings: this._parseJsonField(company.key_offerings || company.keyOfferings, []),
+            topProducts: this._parseJsonField(company.top_products || company.topProducts, []),
+            timeInMarket: company.time_in_market || company.timeInMarket || 0,
+            categoryInfo: company.category_label ? { 
+              id: company.category_id,
+              name: company.category_label 
+            } : null
+          }));
+        }
+      } catch (viewError) {
+        console.warn('Could not use v_aesthetic_companies view, falling back to direct query:', viewError.message);
+      }
+      
+      // Fallback to direct query with join
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select(`
+          *,
+          aesthetic_categories:category_id (id, category_label, description)
+        `)
         .eq('industry', 'aesthetic');
       
       if (error) throw error;
@@ -769,7 +960,12 @@ class SupabaseDataService {
         growthRate: parseFloat(company.growthRate) || 0,
         keyOfferings: this._parseJsonField(company.keyOfferings, []),
         topProducts: this._parseJsonField(company.topProducts, []),
-        timeInMarket: company.timeInMarket || 0
+        timeInMarket: company.timeInMarket || 0,
+        // Add category info if available from join
+        categoryInfo: company.aesthetic_categories ? {
+          id: company.aesthetic_categories.id,
+          name: company.aesthetic_categories.category_label
+        } : null
       }));
     } catch (error) {
       console.error('Error fetching aesthetic companies:', error);
