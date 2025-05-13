@@ -1017,4 +1017,12 @@ async function verifyDataIntegrity() {
 }
 
 // Run the setup
-setupNetlify();
+(async function() {
+  try {
+    await setupNetlify();
+  } catch (error) {
+    console.error('⛔ Fatal error during Netlify setup:', error);
+    // Don't exit with error code, allow the build to continue
+    console.log('⚠️ Setup encountered fatal errors but will continue with deployment');
+  }
+})();

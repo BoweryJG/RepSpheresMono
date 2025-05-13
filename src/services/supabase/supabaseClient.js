@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Import dotenv for Node.js environments
 // This won't affect browser environments
 try {
-  if (typeof process !== 'undefined' && process.env) {
+  if (typeof process !== 'undefined' && process.env && typeof process.cwd === 'function') {
     const dotenv = await import('dotenv');
     dotenv.config();
     console.log('[Supabase] Loaded environment variables from .env file');
