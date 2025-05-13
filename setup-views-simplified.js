@@ -45,13 +45,20 @@ async function setupViews() {
     const executeSqlSql = fs.readFileSync(executeSqlPath, 'utf8');
     
     // Execute the SQL directly
-    const { error: executeSqlError } = await supabase.rpc('execute_sql', { sql_query: executeSqlSql }).catch(() => {
+    let executeSqlError = null;
+    try {
+      const { error } = await supabase.rpc('execute_sql', { sql_query: executeSqlSql });
+      executeSqlError = error;
+    } catch (err) {
       // If the function doesn't exist yet, execute it directly
-      return supabase.from('_temp_execute_sql').select().then(() => {
-        console.log('⚠️ execute_sql function does not exist yet, creating it directly...');
-        return supabase.sql(executeSqlSql);
-      });
-    });
+      console.log('⚠️ execute_sql function does not exist yet, creating it directly...');
+      try {
+        const { error } = await supabase.sql(executeSqlSql);
+        executeSqlError = error;
+      } catch (sqlErr) {
+        executeSqlError = sqlErr;
+      }
+    }
     
     if (executeSqlError) {
       console.warn('⚠️ Could not create execute_sql function:', executeSqlError.message);
@@ -72,10 +79,19 @@ async function setupViews() {
     for (const stmt of statements) {
       try {
         // Try to use execute_sql function if it exists
-        const { error } = await supabase.rpc('execute_sql', { sql_query: stmt + ';' }).catch(() => {
+        let error = null;
+        try {
+          const result = await supabase.rpc('execute_sql', { sql_query: stmt + ';' });
+          error = result.error;
+        } catch (err) {
           // If that fails, execute directly
-          return supabase.sql(stmt + ';');
-        });
+          try {
+            const result = await supabase.sql(stmt + ';');
+            error = result.error;
+          } catch (sqlErr) {
+            error = sqlErr;
+          }
+        }
         
         if (error) {
           console.warn(`⚠️ Error executing statement: ${error.message}`);

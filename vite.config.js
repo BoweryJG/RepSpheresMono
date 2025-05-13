@@ -2,12 +2,11 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Custom plugin to ensure process is defined in browser environment
-// and add enhanced global safeguards for string operations
 const browserSafetyPlugin = () => {
   return {
     name: 'browser-safety-plugin',
     transformIndexHtml(html) {
-      // Add scripts to define process and add string operation safeguards before any other scripts run
+      // Add scripts to define process before any other scripts run
       return html.replace(
         /<head>/,
         `<head>
@@ -15,118 +14,6 @@ const browserSafetyPlugin = () => {
           // Ensure process is defined in browser environment
           window.process = window.process || {};
           window.process.env = window.process.env || {};
-          
-          // Enhanced global safeguards for string operations to prevent "Cannot read properties of undefined" errors
-          (function() {
-            // Store original String prototype methods
-            var originalIndexOf = String.prototype.indexOf;
-            var originalLastIndexOf = String.prototype.lastIndexOf;
-            var originalIncludes = String.prototype.includes;
-            var originalStartsWith = String.prototype.startsWith;
-            var originalEndsWith = String.prototype.endsWith;
-            var originalSubstring = String.prototype.substring;
-            var originalSlice = String.prototype.slice;
-            var originalSplit = String.prototype.split;
-            var originalMatch = String.prototype.match;
-            var originalReplace = String.prototype.replace;
-            var originalSearch = String.prototype.search;
-            var originalToLowerCase = String.prototype.toLowerCase;
-            var originalToUpperCase = String.prototype.toUpperCase;
-            var originalTrim = String.prototype.trim;
-            
-            // Override String methods with safe versions
-            String.prototype.indexOf = function() {
-              if (this === undefined || this === null) return -1;
-              return originalIndexOf.apply(this, arguments);
-            };
-            
-            String.prototype.lastIndexOf = function() {
-              if (this === undefined || this === null) return -1;
-              return originalLastIndexOf.apply(this, arguments);
-            };
-            
-            String.prototype.includes = function() {
-              if (this === undefined || this === null) return false;
-              return originalIncludes.apply(this, arguments);
-            };
-            
-            String.prototype.startsWith = function() {
-              if (this === undefined || this === null) return false;
-              return originalStartsWith.apply(this, arguments);
-            };
-            
-            String.prototype.endsWith = function() {
-              if (this === undefined || this === null) return false;
-              return originalEndsWith.apply(this, arguments);
-            };
-            
-            String.prototype.substring = function() {
-              if (this === undefined || this === null) return '';
-              return originalSubstring.apply(this, arguments);
-            };
-            
-            String.prototype.slice = function() {
-              if (this === undefined || this === null) return '';
-              return originalSlice.apply(this, arguments);
-            };
-            
-            String.prototype.split = function() {
-              if (this === undefined || this === null) return [];
-              return originalSplit.apply(this, arguments);
-            };
-            
-            String.prototype.match = function() {
-              if (this === undefined || this === null) return null;
-              return originalMatch.apply(this, arguments);
-            };
-            
-            String.prototype.replace = function() {
-              if (this === undefined || this === null) return '';
-              return originalReplace.apply(this, arguments);
-            };
-            
-            String.prototype.search = function() {
-              if (this === undefined || this === null) return -1;
-              return originalSearch.apply(this, arguments);
-            };
-            
-            String.prototype.toLowerCase = function() {
-              if (this === undefined || this === null) return '';
-              return originalToLowerCase.apply(this, arguments);
-            };
-            
-            String.prototype.toUpperCase = function() {
-              if (this === undefined || this === null) return '';
-              return originalToUpperCase.apply(this, arguments);
-            };
-            
-            String.prototype.trim = function() {
-              if (this === undefined || this === null) return '';
-              return originalTrim.apply(this, arguments);
-            };
-            
-            // Also add a global safeguard for any string operations
-            window.safeString = function(str) {
-              return (str === undefined || str === null) ? '' : String(str);
-            };
-            
-            // Add a global safeguard for object property access
-            window.safeAccess = function(obj, path, defaultValue) {
-              if (obj === undefined || obj === null) return defaultValue;
-              
-              var parts = path.split('.');
-              var current = obj;
-              
-              for (var i = 0; i < parts.length; i++) {
-                if (current === undefined || current === null) return defaultValue;
-                current = current[parts[i]];
-              }
-              
-              return current !== undefined && current !== null ? current : defaultValue;
-            };
-            
-            console.log('[Safety] Enhanced string operation safeguards installed');
-          })();
         </script>`
       );
     }
@@ -186,12 +73,7 @@ export default defineConfig(({ mode }) => {
       // Configure esbuild to support top-level await
       target: 'esnext', // Use esnext which fully supports top-level await
       // Explicitly set browser targets to modern browsers that support top-level await
-      browserTarget: [
-        'chrome >= 91',
-        'edge >= 91',
-        'firefox >= 90',
-        'safari >= 15'
-      ]
+      browserTarget: 'esnext'
     },
     esbuild: {
       // Set target to esnext which fully supports top-level await
@@ -200,22 +82,12 @@ export default defineConfig(({ mode }) => {
       supported: {
         'top-level-await': true
       },
-      // Add additional safeguards for string operations
+      format: 'esm', // Explicitly set the format to ESM which supports top-level await
       legalComments: 'none',
       minifyIdentifiers: false,
       minifySyntax: true,
       minifyWhitespace: true,
-      treeShaking: true,
-      // Add specific handling for undefined values
-      banner: `
-        // Add safeguards for string operations
-        if (typeof String.prototype.safeIndexOf !== 'function') {
-          String.prototype.safeIndexOf = function(searchValue, fromIndex) {
-            if (this === undefined || this === null) return -1;
-            return String.prototype.indexOf.call(this, searchValue, fromIndex);
-          };
-        }
-      `
+      treeShaking: true
     },
     optimizeDeps: {
       // Exclude setup-netlify.js from optimization to prevent it from being bundled
