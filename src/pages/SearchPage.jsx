@@ -1,91 +1,251 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { searchProcedures } from '../services/procedureService';
-import SearchForm from '../components/procedures/SearchForm';
+import { Container, Typography, Box, Grid, Paper, CircularProgress, Divider, Alert } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { searchProcedures, getAllCategories } from '../services/procedureService';
 import FeaturedProcedures from '../components/procedures/FeaturedProcedures';
+import CategoriesList from '../components/procedures/CategoriesList';
+import SearchForm from '../components/procedures/SearchForm';
 
 function SearchPage() {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const query = searchParams.get('q') || '';
-  
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Get filters from URL params
-  const initialFilters = {
-    industry: searchParams.get('industry') || '',
-    category: searchParams.get('category') || '',
-    sort: searchParams.get('sort') || 'relevance'
-  };
-
-  useEffect(() => {
-    const performSearch = async () => {
-      if (!query) {
-        setResults([]);
-        return;
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Parse query params
+  const getQueryParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const query = searchParams.get('q') || '';
+    
+    // Extract filters
+    const filters = {};
+    for (const [key, value] of searchParams.entries()) {
+      if (key !== 'q') {
+        filters[key] = value;
       }
-
+    }
+    
+    return { query, filters };
+  };
+  
+  // Initial search params
+  const initialParams = getQueryParams();
+  
+  useEffect(() => {
+    async function loadData() {
       try {
         setLoading(true);
-        const searchResults = await searchProcedures(query, initialFilters);
-        setResults(searchResults);
+        
+        // Fetch categories
+        const categoriesData = await getAllCategories();
+        setCategories(categoriesData);
+        
+        // If there are search params, perform search
+        const { query, filters } = getQueryParams();
+        if (query || Object.keys(filters).length > 0) {
+          const results = await searchProcedures(query, filters);
+          setSearchResults(results);
+          setSearchPerformed(true);
+        }
       } catch (err) {
-        console.error('Error searching procedures:', err);
+        console.error('Error loading search page data:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
-    };
-
-    performSearch();
-  }, [query, location.search]);
-
-  return (
-    <div className="search-page">
-      <div className="search-header">
-        <h1>Search Procedures</h1>
-        <Link to="/" className="back-link">← Back to Home</Link>
-      </div>
-
-      <div className="search-container">
-        <SearchForm 
-          className="search-page-form" 
-          defaultQuery={query}
-          defaultFilters={initialFilters}
-        />
-      </div>
+    }
+    
+    loadData();
+  }, [location.search]);
+  
+  // Handle search submission
+  const handleSearch = async (searchData) => {
+    const { query, filters } = searchData;
+    
+    // Build query string
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    
+    // Add filters to query string
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    
+    // Update URL with search params
+    navigate({
+      pathname: '/search',
+      search: params.toString()
+    });
+    
+    // Set search as performed
+    setSearchPerformed(true);
+  };
+  
+  // Get industries for search form
+  const getIndustries = () => {
+    const industries = [
+      { value: 'dental', label: 'Dental' },
+      { value: 'aesthetic', label: 'Aesthetic' }
+    ];
+    
+    return industries;
+  };
+  
+  // Get search title
+  const getSearchTitle = () => {
+    const { query, filters } = getQueryParams();
+    
+    if (query) {
+      return `Search Results for "${query}"`;
+    }
+    
+    if (filters.industry) {
+      const industryName = filters.industry.charAt(0).toUpperCase() + filters.industry.slice(1);
+      return `${industryName} Procedures`;
+    }
+    
+    if (filters.category) {
+      // Find category name
+      const category = categories.find(cat => {
+        const catValue = cat.category_value || cat.value || cat;
+        return catValue === filters.category;
+      });
       
-      <div className="search-results-container">
-        {loading ? (
-          <div className="loading-container">
-            <h2>Searching...</h2>
-          </div>
-        ) : error ? (
-          <div className="error-container">
-            <h2>Error Searching Procedures</h2>
-            <p>{error}</p>
-          </div>
-        ) : (
-          <div className="results-section">
-            <h2>Search Results {query ? `for "${query}"` : ''}</h2>
-            {results.length === 0 ? (
-              <div className="no-results">
-                <p>No procedures found matching your search criteria.</p>
-                <p>Try using different keywords or removing some filters.</p>
-              </div>
-            ) : (
-              <FeaturedProcedures 
-                procedures={results} 
-                title={`${results.length} Results Found`} 
-                className="search-results"
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      const categoryName = category ? 
+        (category.category_name || category.name || category) : 
+        filters.category;
+        
+      return `${categoryName} Procedures`;
+    }
+    
+    if (filters.sortBy) {
+      if (filters.sortBy === 'marketSizeDesc') return 'Largest Market Size Procedures';
+      if (filters.sortBy === 'growthRateDesc') return 'Fastest Growing Procedures';
+    }
+    
+    return 'All Procedures';
+  };
+  
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Error Loading Data
+          </Typography>
+          <Typography>
+            {error}
+          </Typography>
+        </Paper>
+      </Container>
+    );
+  }
+  
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Search Form */}
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+        <Typography variant="h5" component="h1" gutterBottom>
+          Search Procedures
+        </Typography>
+        
+        <SearchForm 
+          industries={getIndustries()}
+          categories={categories}
+          initialQuery={initialParams.query}
+          initialFilters={initialParams.filters}
+          onSearch={handleSearch}
+        />
+      </Paper>
+      
+      {/* Main Content */}
+      <Grid container spacing={4}>
+        {/* Left Column - Search Results */}
+        <Grid item xs={12} md={8}>
+          {searchPerformed ? (
+            <>
+              <Typography variant="h5" component="h2" gutterBottom>
+                {getSearchTitle()} {searchResults.length > 0 && `(${searchResults.length})`}
+              </Typography>
+              
+              {searchResults.length === 0 ? (
+                <Alert severity="info" sx={{ mb: 4 }}>
+                  No procedures found matching your search criteria. Try adjusting your filters or search terms.
+                </Alert>
+              ) : (
+                <FeaturedProcedures 
+                  procedures={searchResults}
+                  title=""
+                  limit={20}
+                />
+              )}
+            </>
+          ) : (
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" gutterBottom>
+                Enter search criteria to find procedures
+              </Typography>
+              <Typography color="text.secondary">
+                Use the search form above to find dental and aesthetic procedures.
+              </Typography>
+            </Paper>
+          )}
+        </Grid>
+        
+        {/* Right Column - Categories */}
+        <Grid item xs={12} md={4}>
+          <CategoriesList 
+            categories={categories}
+            title="Browse Categories"
+            maxHeight={600}
+          />
+          
+          {/* Search Tips */}
+          <Paper 
+            elevation={2}
+            sx={{ 
+              p: 3, 
+              mt: 4, 
+              borderRadius: 2
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Search Tips
+            </Typography>
+            
+            <Typography variant="body2" paragraph>
+              • Use specific terms for more accurate results
+            </Typography>
+            
+            <Typography variant="body2" paragraph>
+              • Filter by industry to narrow down results
+            </Typography>
+            
+            <Typography variant="body2" paragraph>
+              • Sort by market size or growth rate to find trending procedures
+            </Typography>
+            
+            <Typography variant="body2">
+              • Set minimum market size or growth rate to find high-potential procedures
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 }
 
