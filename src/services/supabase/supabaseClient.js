@@ -87,12 +87,25 @@ try {
   console.log('[Supabase] Error displaying URL');
 }
 
+// Add global safeguards for string operations to prevent "Cannot read properties of undefined" errors
+const safeString = (str) => {
+  return (str === undefined || str === null) ? '' : String(str);
+};
+
+// Add a global safeguard for indexOf operations specifically
+if (typeof String.prototype.safeIndexOf !== 'function') {
+  String.prototype.safeIndexOf = function(searchValue, fromIndex) {
+    if (this === undefined || this === null) return -1;
+    return String.prototype.indexOf.call(this, searchValue, fromIndex);
+  };
+}
+
 // Create a safe wrapper around the Supabase client
 const createSafeSupabaseClient = () => {
   try {
     // Ensure we have valid string values for createClient with extreme safeguards
-    const safeSupabaseUrl = String(supabaseUrl || '');
-    const safeSupabaseAnonKey = String(supabaseAnonKey || '');
+    const safeSupabaseUrl = safeString(supabaseUrl);
+    const safeSupabaseAnonKey = safeString(supabaseAnonKey);
     
     // Verify we have actual values before creating client
     if (!safeSupabaseUrl || safeSupabaseUrl === 'undefined' || !safeSupabaseAnonKey || safeSupabaseAnonKey === 'undefined') {

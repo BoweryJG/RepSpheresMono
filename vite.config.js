@@ -187,9 +187,9 @@ export default defineConfig(({ mode }) => {
       target: 'esnext', // Use esnext which fully supports top-level await
       // Explicitly set browser targets to modern browsers that support top-level await
       browserTarget: [
-        'chrome >= 89',
-        'edge >= 89',
-        'firefox >= 89',
+        'chrome >= 91',
+        'edge >= 91',
+        'firefox >= 90',
         'safari >= 15'
       ]
     },
@@ -216,6 +216,10 @@ export default defineConfig(({ mode }) => {
           };
         }
       `
+    },
+    optimizeDeps: {
+      // Exclude setup-netlify.js from optimization to prevent it from being bundled
+      exclude: ['setup-netlify.js']
     },
     define: {
       // Make environment mode available to the app

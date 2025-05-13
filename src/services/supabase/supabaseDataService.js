@@ -778,17 +778,24 @@ class SupabaseDataService {
    */
   async searchProcedures(query, industry) {
     try {
+      // Add safeguards for null/undefined values
       if (!query) {
         return [];
       }
       
+      // Import safeString from supabaseClient if available
+      const safeString = (str) => {
+        return (str === undefined || str === null) ? '' : String(str);
+      };
+      
       // Try to use the search_procedures function if available
       try {
-        let rpcCall = supabase.rpc('search_procedures', { search_term: query });
+        // Use safe string for search term
+        let rpcCall = supabase.rpc('search_procedures', { search_term: safeString(query) });
         
-        // Add industry filter if specified
+        // Add industry filter if specified (with safeguard)
         if (industry) {
-          rpcCall = rpcCall.eq('industry', industry);
+          rpcCall = rpcCall.eq('industry', safeString(industry));
         }
         
         const { data, error } = await rpcCall;
@@ -796,15 +803,15 @@ class SupabaseDataService {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          console.log(`Found ${data.length} procedures matching "${query}"`);
+          console.log(`Found ${data.length} procedures matching "${safeString(query)}"`);
           return data;
         }
       } catch (funcError) {
         console.warn('search_procedures function not available, falling back to basic search:', funcError.message);
       }
       
-      // Fallback to basic search using ILIKE
-      let query_str = `%${query}%`;
+      // Fallback to basic search using ILIKE with safeguards
+      let query_str = `%${safeString(query)}%`;
       let query_result = [];
       
       // Try consolidated view first
