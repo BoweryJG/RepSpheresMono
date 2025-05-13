@@ -2,15 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // Import dotenv for Node.js environments
 // This won't affect browser environments
-try {
-  if (typeof process !== 'undefined' && process.env && typeof process.cwd === 'function') {
-    const dotenv = await import('dotenv');
-    dotenv.config();
-    console.log('[Supabase] Loaded environment variables from .env file');
-  }
-} catch (err) {
-  console.warn('[Supabase] Could not load dotenv:', err.message);
-}
+// Completely avoid dynamic imports and top-level await which cause issues in Netlify builds
+let dotenvLoaded = false;
+
+// In browser environments, we don't need dotenv
+// In Node.js environments, dotenv should be loaded by the script that imports this module
+// This avoids any top-level await or dynamic import issues in Netlify builds
+console.log('[Supabase] Environment variables will be loaded from process.env or import.meta.env');
 
 /**
  * Safe environment variable getter optimized for both browser and Node.js environments
