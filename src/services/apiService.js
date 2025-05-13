@@ -21,7 +21,8 @@ const getEnv = (key, defaultValue) => {
   return defaultValue;
 };
 
-const API_BASE_URL = getEnv('VITE_API_BASE_URL', 'https://osbackend-zl1h.onrender.com');
+// Always use the Render backend URL
+const API_BASE_URL = 'https://osbackend-zl1h.onrender.com';
 
 /**
  * Core API service with methods for different HTTP requests

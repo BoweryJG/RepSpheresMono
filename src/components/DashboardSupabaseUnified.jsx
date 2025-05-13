@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import backendService from '../services/backendService';
 import { 
   getDentalProcedures, 
   getAestheticProcedures, 
@@ -44,13 +45,32 @@ function DashboardSupabaseUnified() {
     setIndustry(newValue === 0 ? 'dental' : 'aesthetic');
   };
   
-  // Load all data
+  // Check module access and load data
   useEffect(() => {
     const loadAllData = async () => {
       setLoading(true);
       setError(null);
       
       try {
+        // Check module access first
+        const moduleAccess = await backendService.checkModuleAccess();
+        console.log('Module access check:', moduleAccess);
+        
+        // If we have stored market insights data, try to retrieve it
+        try {
+          // Use a generic user ID for demo purposes
+          const userId = "demo_user@example.com";
+          const storedData = await backendService.getMarketInsights(userId);
+          
+          if (storedData && Object.keys(storedData).length > 0) {
+            console.log('Retrieved stored market insights data:', storedData);
+            // Process the stored data if available
+            // This is just a placeholder - you would process the actual data structure
+          }
+        } catch (dataError) {
+          console.warn('No stored market insights data found, loading from Supabase:', dataError);
+        }
+        
         // Load procedures
         const dental = await getDentalProcedures();
         const aesthetic = await getAestheticProcedures();
@@ -86,6 +106,31 @@ function DashboardSupabaseUnified() {
         const aestheticTopicsData = await getTrendingTopics('aesthetic');
         setDentalTopics(dentalTopicsData);
         setAestheticTopics(aestheticTopicsData);
+        
+        // Store the loaded data to the backend
+        try {
+          const userId = "demo_user@example.com";
+          const marketData = {
+            dentalProcedures: dental,
+            aestheticProcedures: aesthetic,
+            dentalCompanies: dentalComp,
+            aestheticCompanies: aestheticComp,
+            dentalGrowthData: dentalGrowth,
+            aestheticGrowthData: aestheticGrowth,
+            dentalNews: dentalNewsData,
+            aestheticNews: aestheticNewsData,
+            dentalEvents: dentalEventsData,
+            aestheticEvents: aestheticEventsData,
+            dentalTopics: dentalTopicsData,
+            aestheticTopics: aestheticTopicsData,
+            lastUpdated: new Date().toISOString()
+          };
+          
+          await backendService.storeMarketInsights(userId, marketData);
+          console.log('Market insights data stored successfully');
+        } catch (storeError) {
+          console.warn('Failed to store market insights data:', storeError);
+        }
         
       } catch (err) {
         console.error('Error loading dashboard data:', err);
