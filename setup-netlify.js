@@ -1,20 +1,20 @@
 /**
- * Simplified Netlify Deployment Setup Script
+ * Netlify Deployment Setup Script
  * 
  * This script is executed during Netlify build process to:
  * 1. Verify database connection
- * 2. Verify essential tables exist
- * 3. Log database status for debugging
- * 
- * This is a simplified version that avoids SQL function calls
- * and focuses only on verification to prevent deployment issues.
+ * 2. Set up required database functions and views
+ * 3. Verify essential tables exist
+ * 4. Log database status for debugging
  */
 
 // Use ES module imports
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
+import { spawn } from 'child_process';
 
 // Set up __filename and __dirname equivalents for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config();
-console.log('✅ Required modules loaded successfully');
+console.log('🚀 Starting Netlify deployment setup...');
 
 // Create Supabase client for direct access
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -50,11 +50,9 @@ const ESSENTIAL_TABLES = [
 ];
 
 /**
- * Main setup function - simplified to avoid SQL function calls
+ * Main setup function
  */
 async function setupNetlify() {
-  console.log('🚀 Starting Netlify deployment setup...');
-  
   try {
     // Step 1: Verify database connection
     console.log('📡 Verifying Supabase connection...');
@@ -72,7 +70,20 @@ async function setupNetlify() {
       console.log('✅ Successfully connected to Supabase');
     }
     
-    // Step 2: Verify data integrity
+    // Step 2: Set up database schema
+    console.log('🏗️ Setting up database schema...');
+    
+    // First try to create the execute_sql function and views
+    try {
+      // Run the setup-views-simplified.js script
+      await runScript('./setup-views-simplified.js');
+      console.log('✅ Schema setup completed');
+    } catch (setupError) {
+      console.error('⚠️ Error during schema setup:', setupError.message);
+      console.log('⚠️ Will continue with deployment anyway');
+    }
+    
+    // Step 3: Verify data integrity
     console.log('🔍 Verifying data integrity...');
     await verifyDataIntegrity();
     
@@ -85,7 +96,32 @@ async function setupNetlify() {
 }
 
 /**
- * Verify data integrity - simplified to just check table existence
+ * Run a Node.js script as a child process
+ */
+function runScript(scriptPath) {
+  return new Promise((resolve, reject) => {
+    const process = spawn('node', ['--experimental-json-modules', '--es-module-specifier-resolution=node', scriptPath]);
+    
+    process.stdout.on('data', (data) => {
+      console.log(data.toString().trim());
+    });
+    
+    process.stderr.on('data', (data) => {
+      console.error(data.toString().trim());
+    });
+    
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Script exited with code ${code}`));
+      }
+    });
+  });
+}
+
+/**
+ * Verify data integrity - check table existence and record counts
  */
 async function verifyDataIntegrity() {
   let errors = 0;
@@ -113,7 +149,7 @@ async function verifyDataIntegrity() {
     }
   }
   
-  // Check if views exist - but don't try to create them
+  // Check if views exist
   try {
     const { error: viewError } = await supabase
       .from('v_all_procedures')
@@ -121,11 +157,63 @@ async function verifyDataIntegrity() {
       
     if (viewError) {
       console.error(`⛔ View v_all_procedures not accessible: ${viewError.message}`);
+      errors++;
     } else {
       console.log('✅ View v_all_procedures is accessible');
     }
   } catch (error) {
-    console.warn('⚠️ Could not verify views:', error.message);
+    console.error(`⛔ View v_all_procedures not accessible: ${error.message}`);
+    errors++;
+  }
+  
+  // Check dental companies view
+  try {
+    const { error: dentalViewError } = await supabase
+      .from('v_dental_companies')
+      .select('count(*)', { count: 'exact', head: true });
+      
+    if (dentalViewError) {
+      console.error(`⛔ View v_dental_companies not accessible: ${dentalViewError.message}`);
+      errors++;
+    } else {
+      console.log('✅ View v_dental_companies is accessible');
+    }
+  } catch (error) {
+    console.error(`⛔ View v_dental_companies not accessible: ${error.message}`);
+    errors++;
+  }
+  
+  // Check aesthetic companies view
+  try {
+    const { error: aestheticViewError } = await supabase
+      .from('v_aesthetic_companies')
+      .select('count(*)', { count: 'exact', head: true });
+      
+    if (aestheticViewError) {
+      console.error(`⛔ View v_aesthetic_companies not accessible: ${aestheticViewError.message}`);
+      errors++;
+    } else {
+      console.log('✅ View v_aesthetic_companies is accessible');
+    }
+  } catch (error) {
+    console.error(`⛔ View v_aesthetic_companies not accessible: ${error.message}`);
+    errors++;
+  }
+  
+  // Check search_procedures function
+  try {
+    const { error: searchError } = await supabase
+      .rpc('search_procedures', { search_term: 'test' });
+      
+    if (searchError) {
+      console.error(`⛔ Function search_procedures failed: ${searchError.message}`);
+      errors++;
+    } else {
+      console.log('✅ Function search_procedures is accessible');
+    }
+  } catch (error) {
+    console.error(`⛔ Function search_procedures failed: ${error.message}`);
+    errors++;
   }
   
   console.log(`⛔ Data integrity check found ${errors} errors and ${warnings} warnings`);
