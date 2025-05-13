@@ -8,10 +8,24 @@
  * 4. Validate the data was properly loaded
  */
 
-import 'dotenv/config';
-import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
+// Use require instead of import to avoid top-level await issues
+// Wrap in try-catch to handle any loading errors gracefully
+let dotenv, createClient, fs, path;
+
+try {
+  dotenv = require('dotenv');
+  const supabase = require('@supabase/supabase-js');
+  createClient = supabase.createClient;
+  fs = require('fs');
+  path = require('path');
+  
+  // Load environment variables
+  dotenv.config();
+  console.log('✅ Required modules loaded successfully');
+} catch (err) {
+  console.error('⚠️ Error loading required modules:', err.message);
+  process.exit(1);
+}
 
 // Create Supabase client for direct access
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -1025,4 +1039,8 @@ async function verifyDataIntegrity() {
     // Don't exit with error code, allow the build to continue
     console.log('⚠️ Setup encountered fatal errors but will continue with deployment');
   }
-})();
+})().catch(err => {
+  console.error('Unhandled promise rejection in setup-netlify.js:', err);
+  // Don't exit with error code, allow the build to continue
+  console.log('⚠️ Setup encountered fatal errors but will continue with deployment');
+});

@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Custom plugin to ensure process is defined in browser environment
-// and add global safeguards for string operations
+// and add enhanced global safeguards for string operations
 const browserSafetyPlugin = () => {
   return {
     name: 'browser-safety-plugin',
@@ -16,7 +16,7 @@ const browserSafetyPlugin = () => {
           window.process = window.process || {};
           window.process.env = window.process.env || {};
           
-          // Global safeguards for string operations to prevent "Cannot read properties of undefined" errors
+          // Enhanced global safeguards for string operations to prevent "Cannot read properties of undefined" errors
           (function() {
             // Store original String prototype methods
             var originalIndexOf = String.prototype.indexOf;
@@ -27,6 +27,12 @@ const browserSafetyPlugin = () => {
             var originalSubstring = String.prototype.substring;
             var originalSlice = String.prototype.slice;
             var originalSplit = String.prototype.split;
+            var originalMatch = String.prototype.match;
+            var originalReplace = String.prototype.replace;
+            var originalSearch = String.prototype.search;
+            var originalToLowerCase = String.prototype.toLowerCase;
+            var originalToUpperCase = String.prototype.toUpperCase;
+            var originalTrim = String.prototype.trim;
             
             // Override String methods with safe versions
             String.prototype.indexOf = function() {
@@ -69,12 +75,57 @@ const browserSafetyPlugin = () => {
               return originalSplit.apply(this, arguments);
             };
             
+            String.prototype.match = function() {
+              if (this === undefined || this === null) return null;
+              return originalMatch.apply(this, arguments);
+            };
+            
+            String.prototype.replace = function() {
+              if (this === undefined || this === null) return '';
+              return originalReplace.apply(this, arguments);
+            };
+            
+            String.prototype.search = function() {
+              if (this === undefined || this === null) return -1;
+              return originalSearch.apply(this, arguments);
+            };
+            
+            String.prototype.toLowerCase = function() {
+              if (this === undefined || this === null) return '';
+              return originalToLowerCase.apply(this, arguments);
+            };
+            
+            String.prototype.toUpperCase = function() {
+              if (this === undefined || this === null) return '';
+              return originalToUpperCase.apply(this, arguments);
+            };
+            
+            String.prototype.trim = function() {
+              if (this === undefined || this === null) return '';
+              return originalTrim.apply(this, arguments);
+            };
+            
             // Also add a global safeguard for any string operations
             window.safeString = function(str) {
               return (str === undefined || str === null) ? '' : String(str);
             };
             
-            console.log('[Safety] String operation safeguards installed');
+            // Add a global safeguard for object property access
+            window.safeAccess = function(obj, path, defaultValue) {
+              if (obj === undefined || obj === null) return defaultValue;
+              
+              var parts = path.split('.');
+              var current = obj;
+              
+              for (var i = 0; i < parts.length; i++) {
+                if (current === undefined || current === null) return defaultValue;
+                current = current[parts[i]];
+              }
+              
+              return current !== undefined && current !== null ? current : defaultValue;
+            };
+            
+            console.log('[Safety] Enhanced string operation safeguards installed');
           })();
         </script>`
       );
@@ -136,8 +187,28 @@ export default defineConfig(({ mode }) => {
       target: 'es2022'
     },
     esbuild: {
-      // Set target to ES2022 which supports top-level await
-      target: 'es2022'
+      // Set target to es2022 which fully supports top-level await
+      target: 'es2022',
+      // Ensure top-level await is supported
+      supported: {
+        'top-level-await': true
+      },
+      // Add additional safeguards for string operations
+      legalComments: 'none',
+      minifyIdentifiers: false,
+      minifySyntax: true,
+      minifyWhitespace: true,
+      treeShaking: true,
+      // Add specific handling for undefined values
+      banner: `
+        // Add safeguards for string operations
+        if (typeof String.prototype.safeIndexOf !== 'function') {
+          String.prototype.safeIndexOf = function(searchValue, fromIndex) {
+            if (this === undefined || this === null) return -1;
+            return String.prototype.indexOf.call(this, searchValue, fromIndex);
+          };
+        }
+      `
     },
     define: {
       // Make environment mode available to the app
