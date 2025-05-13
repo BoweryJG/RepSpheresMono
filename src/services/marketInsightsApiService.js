@@ -51,7 +51,9 @@ export const marketInsightsApiService = {
    */
   async checkModuleAccess() {
     try {
-      return await apiService.get('/api/modules/access');
+      // Try to get the module access status from the API
+      const response = await apiService.get('/api/modules/access');
+      return response;
     } catch (error) {
       console.error('Error checking module access:', error);
       // Always return true as specified in the requirements
@@ -119,7 +121,8 @@ export const marketInsightsApiService = {
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.MODULE_ACCESS_ENDPOINT}`);
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} - ${response.statusText}`);
+        console.warn(`Module access endpoint returned status: ${response.status}. Returning default access: true`);
+        return { access: true };
       }
       
       return await response.json();

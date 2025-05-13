@@ -2,30 +2,44 @@
 
 # Deploy to Netlify Script
 # This script builds and deploys the Market Insights frontend to Netlify
-# with the updated Render backend URL configuration
 
 echo "===== Market Insights Netlify Deployment ====="
-echo "Building and deploying frontend with Render backend integration"
-echo "Backend URL: https://osbackend-zl1h.onrender.com"
 
-# Ensure we have the latest dependencies
-echo "Installing dependencies..."
-npm install
+# Check if Netlify CLI is installed
+if ! command -v netlify &> /dev/null; then
+    echo "Netlify CLI not found. Installing..."
+    npm install -g netlify-cli
+fi
 
 # Build the project
 echo "Building project..."
 npm run build
 
-# Deploy to Netlify (if Netlify CLI is installed)
-if command -v netlify &> /dev/null; then
-  echo "Deploying to Netlify..."
-  netlify deploy --prod --dir=dist
-else
-  echo "Netlify CLI not found. Please install it with 'npm install -g netlify-cli'"
-  echo "Then deploy manually with: netlify deploy --prod --dir=dist"
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed. Aborting deployment."
+    exit 1
 fi
 
-echo "===== Deployment Process Complete ====="
-echo "Please verify the following endpoints are working correctly:"
-echo "- Market Insights API: https://osbackend-zl1h.onrender.com/api/data/market_insights"
-echo "- Module Access API: https://osbackend-zl1h.onrender.com/api/modules/access"
+echo "✅ Build successful."
+
+# Deploy to Netlify
+echo "Deploying to Netlify..."
+netlify deploy --prod
+
+if [ $? -ne 0 ]; then
+    echo "❌ Deployment failed."
+    exit 1
+fi
+
+echo "✅ Deployment successful."
+echo "===== Deployment Complete ====="
+
+# Reminder about testing
+echo ""
+echo "Don't forget to test the following endpoints:"
+echo "1. Market Insights Data: https://osbackend-zl1h.onrender.com/api/data/market_insights"
+echo "2. Module Access: https://osbackend-zl1h.onrender.com/api/modules/access"
+echo ""
+echo "You can use the test scripts to verify the backend integration:"
+echo "node test-backend-connection.js"
+echo "node test-render-backend.js"

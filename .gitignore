@@ -57,3 +57,6 @@ htmlcov/
 *.swp
 *.swo
 *~
+
+# Local Netlify folder
+.netlify
