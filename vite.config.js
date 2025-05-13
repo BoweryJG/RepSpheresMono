@@ -131,7 +131,13 @@ export default defineConfig(({ mode }) => {
       },
       // Add console logging to help debug Netlify builds
       reportCompressedSize: true,
-      chunkSizeWarningLimit: 1000
+      chunkSizeWarningLimit: 1000,
+      // Configure esbuild to support top-level await
+      target: 'es2022'
+    },
+    esbuild: {
+      // Set target to ES2022 which supports top-level await
+      target: 'es2022'
     },
     define: {
       // Make environment mode available to the app
