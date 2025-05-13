@@ -2,10 +2,17 @@ import { CssBaseline } from '@mui/material';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DashboardSupabase from './components/DashboardSupabase';
+import DashboardSupabaseUnified from './components/DashboardSupabaseUnified';
 import Login from './components/Login';
+import HomePage from './pages/HomePage';
+import SearchPage from './pages/SearchPage';
+import CategoryPage from './pages/CategoryPage';
+import ProcedureDetailsPage from './pages/ProcedureDetailsPage';
+import NotFoundPage from './pages/NotFoundPage';
 import { IndustryThemeProvider, useIndustryTheme } from './services/theme/IndustryThemeContext';
 import { useEffect, useState } from 'react';
 import { supabaseDataService } from './services/supabase/supabaseDataService';
+import { unifiedSupabaseService } from './services/supabase/unifiedSupabaseService';
 import { Alert, Snackbar, Box, Button, CircularProgress } from '@mui/material';
 import apiService from './services/apiService';
 import { supabase } from './services/supabase/supabaseClient';
@@ -71,6 +78,18 @@ function AppContent({ initializationError = false }) {
           });
         }
         
+        // Initialize the unified Supabase service (handles both MCP and direct connections)
+        console.log('Initializing Unified Supabase service...');
+        try {
+          const unifiedResult = await unifiedSupabaseService.initialize();
+          console.log('Unified Supabase service initialized:', 
+            unifiedResult.usingMcp ? 'Using MCP' : 'Using Direct API',
+            'in', unifiedResult.environment || 'unknown', 'mode');
+        } catch (unifiedError) {
+          console.error('Error initializing unified service:', unifiedError);
+          // Don't show notification to user since the regular service is the fallback
+        }
+        
         // Check backend API connection
         try {
           console.log('Checking backend API connection...');
@@ -134,14 +153,20 @@ function AppContent({ initializationError = false }) {
       </Snackbar>
       
       <Routes>
-        {/* Dashboard Routes - Using only Supabase data */}
-        <Route path="/dashboard/*" element={<DashboardSupabase user={user} />} />
+        {/* Main Procedure Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/categories/:categoryName" element={<CategoryPage />} />
+        <Route path="/procedures/:id" element={<ProcedureDetailsPage />} />
         
-        {/* Redirect root to dashboard by default */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Dashboard Routes - Using only Supabase data (legacy) */}
+        <Route path="/dashboard-legacy/*" element={<DashboardSupabase user={user} />} />
         
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Dashboard Routes - Using Unified Supabase Service (MCP in dev, direct in prod) */}
+        <Route path="/dashboard/*" element={<DashboardSupabaseUnified user={user} />} />
+        
+        {/* 404 Not Found */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );
