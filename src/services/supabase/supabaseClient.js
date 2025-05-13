@@ -92,6 +92,14 @@ const safeString = (str) => {
   return (str === undefined || str === null) ? '' : String(str);
 };
 
+// Add a safe indexOf method to avoid "Cannot read properties of undefined (reading 'indexOf')" errors
+String.prototype.safeIndexOf = function(searchValue, fromIndex) {
+  if (this === undefined || this === null) {
+    return -1;
+  }
+  return String.prototype.indexOf.call(this, searchValue, fromIndex);
+};
+
 // Create a safe wrapper around the Supabase client
 const createSafeSupabaseClient = () => {
   try {

@@ -71,13 +71,13 @@ export default defineConfig(({ mode }) => {
       reportCompressedSize: true,
       chunkSizeWarningLimit: 1000,
       // Configure esbuild to support top-level await
-      target: 'esnext', // Use esnext which fully supports top-level await
-      // Explicitly set browser targets to modern browsers that support top-level await
-      browserTarget: 'esnext'
+      target: 'es2022', // Use es2022 which supports top-level await and is compatible with more browsers
+      // Explicitly set browser targets to browsers that support top-level await
+      browserTarget: ['chrome90', 'firefox90', 'safari15', 'edge90']
     },
     esbuild: {
-      // Set target to esnext which fully supports top-level await
-      target: 'esnext',
+      // Set target to es2022 which supports top-level await and is compatible with more browsers
+      target: 'es2022',
       // Ensure top-level await is supported
       supported: {
         'top-level-await': true
