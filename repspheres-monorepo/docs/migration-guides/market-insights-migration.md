@@ -1,390 +1,420 @@
 # Market Insights Migration Guide
 
-This guide outlines the process for migrating the Market Insights application into the RepSpheres monorepo structure.
+This guide provides step-by-step instructions for migrating the Market Insights application from a standalone project to the RepSpheres monorepo architecture.
 
 ## Overview
 
 The migration process involves:
 
 1. Setting up the application structure in the monorepo
-2. Moving the existing code into the new structure
-3. Updating imports to use shared packages
-4. Testing the migrated application
-5. Deploying from the monorepo
+2. Migrating the source code
+3. Updating dependencies
+4. Configuring shared packages
+5. Integrating with the unified API Gateway
+6. Setting up Supabase client integration
+7. Testing the migrated application
 
 ## Prerequisites
 
-- Access to the existing Market Insights repository
-- Access to the RepSpheres monorepo repository
-- Node.js 18+ and npm 8+
-- Understanding of the application's architecture and dependencies
+- Access to the original Market Insights repository
+- Access to the RepSpheres monorepo
+- Node.js 18+ and npm/yarn installed
+- Supabase project credentials
 
-## Step 1: Prepare the Monorepo Structure
+## Step 1: Project Structure Setup
 
-The Market Insights application will be located in the `apps/market-insights` directory of the monorepo. The shared code will be in the `packages` directory.
+The Market Insights app should be structured as follows in the monorepo:
 
 ```
 repspheres-monorepo/
 ├── apps/
-│   └── market-insights/    # Market Insights application
+│   └── market-insights/
+│       ├── public/
+│       ├── src/
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── vite.config.ts
 └── packages/
-    ├── api-gateway/        # Shared API Gateway
-    ├── router/             # Shared routing
-    ├── supabase-client/    # Shared Supabase client
-    ├── ui/                 # Shared UI components
-    └── utils/              # Shared utilities
+    ├── api-gateway/
+    ├── supabase-client/
+    ├── ui/
+    └── router/
 ```
 
-## Step 2: Set Up the Application Configuration
+## Step 2: Dependency Configuration
 
-1. Create the necessary configuration files in the `apps/market-insights` directory:
+Update the `package.json` in `apps/market-insights/` to use the shared packages:
 
-   - `package.json`: Application dependencies and scripts
-   - `tsconfig.json`: TypeScript configuration
-   - `vite.config.ts`: Vite configuration
-   - `.env.example`: Example environment variables
+```json
+{
+  "name": "@repo/market-insights",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.16",
+    "@mui/material": "^5.14.17",
+    "@repo/api-gateway": "*",
+    "@repo/router": "*",
+    "@repo/supabase-client": "*",
+    "@repo/ui": "*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.6",
+    "@types/node": "^20.8.9",
+    "@types/react": "^18.2.33",
+    "@types/react-dom": "^18.2.14",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
+    "@vitejs/plugin-react": "^4.1.0",
+    "eslint": "^8.52.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0"
+  }
+}
+```
 
-2. Configure the application to use the shared packages:
+## Step 3: Migrating Source Code
 
-   ```json
-   // apps/market-insights/package.json
-   {
-     "name": "@repspheres/market-insights",
-     "version": "0.1.0",
-     "private": true,
-     "scripts": {
-       "dev": "vite",
-       "build": "tsc && vite build",
-       "preview": "vite preview",
-       "test": "vitest run",
-       "lint": "eslint src --ext ts,tsx"
-     },
-     "dependencies": {
-       "@repspheres/api-gateway": "workspace:*",
-       "@repspheres/router": "workspace:*",
-       "@repspheres/supabase-client": "workspace:*",
-       "@repspheres/ui": "workspace:*",
-       "@repspheres/utils": "workspace:*",
-       "react": "^18.2.0",
-       "react-dom": "^18.2.0"
-     },
-     "devDependencies": {
-       "@types/react": "^18.2.15",
-       "@types/react-dom": "^18.2.7",
-       "@typescript-eslint/eslint-plugin": "^6.0.0",
-       "@typescript-eslint/parser": "^6.0.0",
-       "@vitejs/plugin-react": "^4.0.3",
-       "eslint": "^8.45.0",
-       "eslint-plugin-react-hooks": "^4.6.0",
-       "eslint-plugin-react-refresh": "^0.4.3",
-       "typescript": "^5.0.2",
-       "vite": "^4.4.5",
-       "vitest": "^0.34.1"
-     }
-   }
-   ```
+1. Copy the source files from the original Market Insights project to `apps/market-insights/src/`
+2. Convert JavaScript files to TypeScript where applicable
+3. Update imports to use the shared packages
 
-   ```typescript
-   // apps/market-insights/vite.config.ts
-   import { defineConfig } from 'vite';
-   import react from '@vitejs/plugin-react';
-   import path from 'path';
+Example of updating imports:
 
-   export default defineConfig({
-     plugins: [react()],
-     resolve: {
-       alias: {
-         '@': path.resolve(__dirname, './src'),
-       },
-     },
-     server: {
-       port: 3001,
-     },
-     build: {
-       outDir: 'dist',
-       sourcemap: true,
-     },
-   });
-   ```
+```typescript
+// Before
+import { createClient } from '@supabase/supabase-js';
+import { Button } from '../components/ui/Button';
 
-   ```json
-   // apps/market-insights/tsconfig.json
-   {
-     "extends": "../../tsconfig.json",
-     "compilerOptions": {
-       "target": "ES2020",
-       "useDefineForClassFields": true,
-       "lib": ["ES2020", "DOM", "DOM.Iterable"],
-       "module": "ESNext",
-       "skipLibCheck": true,
-       "moduleResolution": "bundler",
-       "allowImportingTsExtensions": true,
-       "resolveJsonModule": true,
-       "isolatedModules": true,
-       "noEmit": true,
-       "jsx": "react-jsx",
-       "strict": true,
-       "noUnusedLocals": true,
-       "noUnusedParameters": true,
-       "noFallthroughCasesInSwitch": true,
-       "baseUrl": ".",
-       "paths": {
-         "@/*": ["src/*"]
-       }
-     },
-     "include": ["src"],
-     "references": [{ "path": "./tsconfig.node.json" }]
-   }
-   ```
+// After
+import { createSupabaseClient } from '@repo/supabase-client';
+import { Button } from '@repo/ui';
+```
 
-## Step 3: Migrate the Application Code
+## Step 4: Supabase Client Integration
 
-1. Create the basic directory structure:
+Replace the direct Supabase client usage with the shared client from `@repo/supabase-client`:
 
-   ```
-   apps/market-insights/
-   ├── public/
-   ├── src/
-   │   ├── assets/
-   │   ├── components/
-   │   ├── hooks/
-   │   ├── pages/
-   │   ├── services/
-   │   ├── types/
-   │   ├── utils/
-   │   ├── App.tsx
-   │   ├── main.tsx
-   │   └── vite-env.d.ts
-   ├── .env.example
-   ├── index.html
-   ├── package.json
-   ├── tsconfig.json
-   ├── tsconfig.node.json
-   └── vite.config.ts
-   ```
+### Before:
 
-2. Copy the existing application code from the Market Insights repository to the corresponding directories in the monorepo.
+```javascript
+// src/services/supabase/supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
 
-3. Update imports to use the shared packages:
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-   - Replace direct API calls with the API Gateway
-   - Replace direct Supabase calls with the shared Supabase client
-   - Replace UI components with shared UI components where applicable
-   - Update routing to use the shared router
+export const supabase = createClient(supabaseUrl, supabaseKey);
+```
 
-4. Example of updating API calls:
+### After:
 
-   **Before:**
-   ```typescript
-   // src/services/marketInsightsApiService.js
-   import axios from 'axios';
+```typescript
+// src/services/supabase/supabaseClient.ts
+import { createSupabaseClient } from '@repo/supabase-client';
 
-   const API_URL = 'https://osbackend-zl1h.onrender.com';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
-   export const getCategories = async () => {
-     try {
-       const response = await axios.get(`${API_URL}/api/categories`);
-       return response.data;
-     } catch (error) {
-       console.error('Error fetching categories:', error);
-       throw error;
-     }
-   };
-   ```
+export const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
+```
 
-   **After:**
-   ```typescript
-   // src/services/api-client.ts
-   import { ApiGateway } from '@repspheres/api-gateway';
-   import { ApiGatewayConfig } from '@repspheres/api-gateway/src/types';
+For React components, use the provided hooks and context:
 
-   export class MarketInsightsApiClient {
-     private apiGateway: ApiGateway;
-     private static instance: MarketInsightsApiClient;
+```tsx
+// src/components/ProceduresList.tsx
+import React, { useEffect, useState } from 'react';
+import { useSupabase } from '@repo/supabase-client';
+import type { Database } from '@repo/supabase-client';
 
-     constructor(config: ApiGatewayConfig) {
-       this.apiGateway = new ApiGateway(config);
-     }
+export const ProceduresList = () => {
+  const { supabase, isLoading, error } = useSupabase();
+  const [procedures, setProcedures] = useState<Database['public']['Tables']['aesthetic_procedures']['Row'][]>([]);
+  
+  useEffect(() => {
+    const fetchProcedures = async () => {
+      if (!isLoading && !error) {
+        const { data } = await supabase
+          .from('aesthetic_procedures')
+          .select('*')
+          .limit(10);
+        
+        setProcedures(data || []);
+      }
+    };
+    
+    fetchProcedures();
+  }, [supabase, isLoading, error]);
+  
+  // Render procedures...
+};
+```
 
-     public static getInstance(config?: ApiGatewayConfig): MarketInsightsApiClient {
-       if (!MarketInsightsApiClient.instance) {
-         if (!config) {
-           throw new Error('Configuration is required when creating the first instance');
-         }
-         MarketInsightsApiClient.instance = new MarketInsightsApiClient(config);
-       }
-       return MarketInsightsApiClient.instance;
-     }
+Wrap your app with the `SupabaseProvider`:
 
-     public async getCategories(): Promise<any[]> {
-       const response = await this.apiGateway.get('/api/categories');
-       
-       if (!response.success) {
-         throw new Error(`Failed to get categories: ${response.error?.message}`);
-       }
-       
-       return response.data;
-     }
-   }
+```tsx
+// src/App.tsx
+import React from 'react';
+import { SupabaseProvider } from '@repo/supabase-client';
+import { AppRoutes } from './routes';
 
-   export default MarketInsightsApiClient.getInstance({
-     baseURL: 'https://osbackend-zl1h.onrender.com',
-     timeout: 10000,
-   });
-   ```
+const App = () => {
+  const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+  const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+  
+  return (
+    <SupabaseProvider supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
+      <AppRoutes />
+    </SupabaseProvider>
+  );
+};
 
-5. Example of updating Supabase calls:
+export default App;
+```
 
-   **Before:**
-   ```typescript
-   // src/services/supabase/supabaseClient.js
-   import { createClient } from '@supabase/supabase-js';
+## Step 5: API Gateway Integration
 
-   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-   const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+Replace direct API calls with the API Gateway:
 
-   export const supabase = createClient(supabaseUrl, supabaseKey);
-   ```
+### Before:
 
-   **After:**
-   ```typescript
-   // src/services/supabase-client.ts
-   import { supabase } from '@repspheres/supabase-client';
+```javascript
+// src/services/marketInsightsApiService.js
+import axios from 'axios';
 
-   export default supabase;
-   ```
+const API_URL = 'https://osbackend-zl1h.onrender.com';
 
-## Step 4: Update the Application Entry Point
+export const fetchMarketData = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/api/market-data`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    throw error;
+  }
+};
+```
 
-1. Update the `index.html` file:
+### After:
 
-   ```html
-   <!DOCTYPE html>
-   <html lang="en">
-     <head>
-       <meta charset="UTF-8" />
-       <link rel="icon" type="image/svg+xml" href="/src/assets/market-insights-logo.svg" />
-       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-       <title>Market Insights</title>
-     </head>
-     <body>
-       <div id="root"></div>
-       <script type="module" src="/src/main.tsx"></script>
-     </body>
-   </html>
-   ```
+```typescript
+// src/services/api-client.ts
+import { createApiClient } from '@repo/api-gateway';
 
-2. Update the `main.tsx` file:
+const apiClient = createApiClient({
+  baseURL: 'https://osbackend-zl1h.onrender.com',
+  timeout: 10000,
+  retries: 3
+});
 
-   ```typescript
-   import React from 'react';
-   import ReactDOM from 'react-dom/client';
-   import App from './App';
-   import './index.css';
+export const fetchMarketData = async () => {
+  try {
+    const response = await apiClient.get('/api/market-data');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    throw error;
+  }
+};
+```
 
-   ReactDOM.createRoot(document.getElementById('root')!).render(
-     <React.StrictMode>
-       <App />
-     </React.StrictMode>
-   );
-   ```
+## Step 6: UI Component Integration
 
-3. Update the `App.tsx` file to use the shared router:
+Replace custom UI components with shared components from the UI package:
 
-   ```typescript
-   import React from 'react';
-   import { Router, Route } from '@repspheres/router';
-   import HomePage from './pages/HomePage';
-   import CategoryPage from './pages/CategoryPage';
-   import ProcedureDetailsPage from './pages/ProcedureDetailsPage';
-   import SearchPage from './pages/SearchPage';
-   import NotFoundPage from './pages/NotFoundPage';
+### Before:
 
-   const App: React.FC = () => {
-     return (
-       <Router>
-         <Route path="/" component={HomePage} />
-         <Route path="/category/:id" component={CategoryPage} />
-         <Route path="/procedure/:id" component={ProcedureDetailsPage} />
-         <Route path="/search" component={SearchPage} />
-         <Route path="*" component={NotFoundPage} />
-       </Router>
-     );
-   };
+```jsx
+// src/components/ui/GradientButton.jsx
+import React from 'react';
+import styled from '@emotion/styled';
 
-   export default App;
-   ```
+const StyledButton = styled.button`
+  background: linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%);
+  border-radius: 3px;
+  border: 0;
+  color: white;
+  height: 48px;
+  padding: 0 30px;
+  box-shadow: 0 3px 5px 2px rgba(255, 105, 135, .3);
+`;
 
-## Step 5: Test the Migrated Application
+export const GradientButton = ({ children, ...props }) => (
+  <StyledButton {...props}>{children}</StyledButton>
+);
+```
 
-1. Install dependencies:
+### After:
 
-   ```bash
-   cd repspheres-monorepo
-   npm install
-   ```
+```tsx
+// src/components/SomeComponent.tsx
+import React from 'react';
+import { GradientButton } from '@repo/ui';
 
-2. Start the development server:
+export const SomeComponent = () => (
+  <div>
+    <GradientButton>Click Me</GradientButton>
+  </div>
+);
+```
 
-   ```bash
-   npm run dev -- --filter=market-insights
-   ```
+## Step 7: Routing Integration
 
-3. Test all functionality to ensure it works correctly:
-   - Navigation between pages
-   - API calls
-   - Supabase integration
-   - UI components
+Update the routing to use the shared router package:
 
-4. Fix any issues that arise during testing.
+### Before:
 
-## Step 6: Deploy the Application
+```jsx
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import CategoryPage from './pages/CategoryPage';
+import ProcedureDetailsPage from './pages/ProcedureDetailsPage';
 
-1. Build the application:
+const App = () => (
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/category/:categoryId" element={<CategoryPage />} />
+      <Route path="/procedure/:procedureId" element={<ProcedureDetailsPage />} />
+    </Routes>
+  </BrowserRouter>
+);
 
-   ```bash
-   npm run build -- --filter=market-insights
-   ```
+export default App;
+```
 
-2. Deploy to Netlify:
+### After:
 
-   ```bash
-   npm run deploy:netlify -- --filter=market-insights
-   ```
+```tsx
+// src/routes.ts
+import { RouteConfig } from '@repo/router';
+import HomePage from './pages/HomePage';
+import CategoryPage from './pages/CategoryPage';
+import ProcedureDetailsPage from './pages/ProcedureDetailsPage';
+
+export const routes: RouteConfig[] = [
+  {
+    path: '/',
+    component: HomePage,
+    exact: true
+  },
+  {
+    path: '/category/:categoryId',
+    component: CategoryPage
+  },
+  {
+    path: '/procedure/:procedureId',
+    component: ProcedureDetailsPage
+  }
+];
+```
+
+```tsx
+// src/App.tsx
+import React from 'react';
+import { AppRouter } from '@repo/router';
+import { SupabaseProvider } from '@repo/supabase-client';
+import { routes } from './routes';
+
+const App = () => {
+  const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+  const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+  
+  return (
+    <SupabaseProvider supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
+      <AppRouter routes={routes} />
+    </SupabaseProvider>
+  );
+};
+
+export default App;
+```
+
+## Step 8: Environment Variables
+
+Create a `.env` file in the `apps/market-insights/` directory:
+
+```
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Step 9: Testing the Migration
+
+1. Build the shared packages:
+
+```bash
+cd repspheres-monorepo
+npm run build
+```
+
+2. Start the Market Insights app:
+
+```bash
+cd apps/market-insights
+npm run dev
+```
+
+3. Verify that:
+   - The app loads correctly
+   - Supabase data is fetched and displayed
+   - API calls work through the API Gateway
+   - Routing works as expected
+   - UI components are displayed correctly
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Module not found errors**:
-   - Check that all imports are correctly updated to use the shared packages
-   - Ensure the package is listed in the dependencies in `package.json`
+   - Ensure all shared packages are built
+   - Check import paths are correct
+   - Verify package names in package.json
 
-2. **Type errors**:
-   - Update type definitions to match the shared packages
-   - Use the shared types from `@repspheres/types` where applicable
+2. **TypeScript errors**:
+   - Update type definitions
+   - Use proper type imports from shared packages
 
-3. **API Gateway connection issues**:
-   - Check that the API Gateway is correctly configured with the right base URL
-   - Ensure that the API endpoints match the expected format
+3. **Supabase connection issues**:
+   - Verify environment variables are set correctly
+   - Check Supabase project is active
+   - Ensure RLS policies are configured properly
 
-4. **Supabase client issues**:
-   - Verify that the Supabase client is correctly initialized with the right credentials
-   - Check that the table names and column names match the expected format
+4. **API Gateway errors**:
+   - Check API endpoint configuration
+   - Verify Render backend is running
+   - Check network connectivity
 
 ## Next Steps
 
-After successfully migrating the Market Insights application, consider:
+After successful migration:
 
-1. Refactoring components to use the shared UI library
-2. Improving error handling with the API Gateway
-3. Enhancing the application with features from other applications in the monorepo
-4. Contributing to the shared packages to improve functionality for all applications
+1. Update documentation
+2. Set up CI/CD pipelines
+3. Implement cross-app navigation
+4. Optimize build configurations
+5. Set up shared state management
 
 ## Resources
 
-- [RepSpheres Monorepo README](../../README.md)
-- [API Gateway Documentation](../../packages/api-gateway/README.md)
-- [Shared Router Documentation](../../packages/router/README.md)
-- [Shared Supabase Client Documentation](../../packages/supabase-client/README.md)
-- [Shared UI Components Documentation](../../packages/ui/README.md)
+- [Supabase Client Integration Guide](../supabase-client-integration.md)
+- [API Gateway Connection Solution](../api-gateway-connection-solution.md)
+- [Monorepo README](../../README.md)

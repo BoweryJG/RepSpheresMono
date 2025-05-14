@@ -1,340 +1,568 @@
-# API Gateway: Solving Connection Issues Between Netlify and Render
+# API Gateway Connection Solution
 
-This document explains how the API Gateway implementation addresses the connection problems between the Netlify frontend and Render backend in the RepSpheres applications.
+This document outlines the solution for addressing connection issues between the Netlify frontend and Render backend in the RepSpheres monorepo architecture.
 
 ## Problem Statement
 
-The RepSpheres applications have been experiencing several connection issues:
+The RepSpheres applications have been experiencing several connection-related issues:
 
-1. **Unreliable Connections**: Intermittent failures when connecting to the Render backend (`https://osbackend-zl1h.onrender.com`)
-2. **Cross-Origin Communication Problems**: CORS issues between different React applications
-3. **Inconsistent Error Handling**: Different error handling approaches across applications
-4. **Cold Start Delays**: Slow response times after periods of inactivity due to Render's free tier spinning down
-5. **Authentication Token Management**: Inconsistent handling of authentication tokens
+1. **Cross-origin communication problems** between React apps
+2. **Unreliable connections** to the Render backend (`https://osbackend-zl1h.onrender.com`)
+3. **Inconsistent error handling** across applications
+4. **Cold start delays** with the Render service
+5. **Network timeouts** during peak usage
 
-## Solution: API Gateway
+## Solution Overview
 
-The API Gateway provides a unified interface for making HTTP requests to backend services, addressing these issues through several mechanisms:
+The API Gateway package (`@repo/api-gateway`) provides a unified interface for all backend communication, with built-in resilience features:
 
-### 1. Connection Reliability
+1. **Centralized configuration** for all API requests
+2. **Automatic retry logic** for transient failures
+3. **Consistent error handling** across all applications
+4. **Request caching** to reduce backend load
+5. **Connection pooling** for improved performance
+6. **Circuit breaker pattern** to prevent cascading failures
+7. **Request/response interceptors** for logging and monitoring
 
-#### Retry Logic
-
-The API Gateway implements configurable retry logic with exponential backoff:
-
-```typescript
-// From packages/api-gateway/src/gateway.ts
-private async executeWithRetry<T>(
-  requestFn: () => Promise<AxiosResponse<T>>,
-  options?: RequestOptions
-): Promise<ApiResponse<T>> {
-  const retryConfig = this.config.retryConfig;
-  let attempts = 0;
-  
-  while (attempts <= retryConfig.maxRetries) {
-    try {
-      const response = await requestFn();
-      return this.createSuccessResponse(response);
-    } catch (error) {
-      if (
-        attempts < retryConfig.maxRetries &&
-        this.shouldRetry(error, retryConfig.retryStatusCodes)
-      ) {
-        attempts++;
-        const delay = retryConfig.retryDelay * Math.pow(2, attempts - 1);
-        this.logDebug(`Retry attempt ${attempts} after ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        return this.createErrorResponse(error);
-      }
-    }
-  }
-  
-  // This should never be reached due to the return in the catch block
-  return this.createErrorResponse(new Error('Maximum retry attempts reached'));
-}
-```
-
-This ensures that temporary connection issues are automatically handled without affecting the user experience.
-
-### 2. Circuit Breaking
-
-The API Gateway implements the circuit breaker pattern to prevent cascading failures:
-
-```typescript
-// From packages/api-gateway/src/gateway.ts
-private circuitState: 'closed' | 'open' | 'half-open' = 'closed';
-private failureCount = 0;
-private lastFailureTime = 0;
-private readonly FAILURE_THRESHOLD = 5;
-private readonly RESET_TIMEOUT = 30000; // 30 seconds
-
-private checkCircuitBreaker(): boolean {
-  if (this.circuitState === 'open') {
-    const now = Date.now();
-    if (now - this.lastFailureTime > this.RESET_TIMEOUT) {
-      this.circuitState = 'half-open';
-      this.logDebug('Circuit breaker state changed to half-open');
-      return true;
-    }
-    return false;
-  }
-  return true;
-}
-
-private trackResult(success: boolean): void {
-  if (success) {
-    if (this.circuitState === 'half-open') {
-      this.circuitState = 'closed';
-      this.failureCount = 0;
-      this.logDebug('Circuit breaker state changed to closed');
-    }
-  } else {
-    this.failureCount++;
-    this.lastFailureTime = Date.now();
-    
-    if (this.failureCount >= this.FAILURE_THRESHOLD && this.circuitState === 'closed') {
-      this.circuitState = 'open';
-      this.logDebug('Circuit breaker state changed to open');
-    }
-  }
-}
-```
-
-This prevents the application from repeatedly trying to connect to a failing backend service, which can lead to cascading failures and poor user experience.
-
-### 3. Cross-Origin Communication
-
-The API Gateway centralizes all API requests, eliminating the need for direct cross-origin requests from different applications:
+## Architecture
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │                 │     │                 │     │                 │
-│  Market         │     │  API Gateway    │     │  Render         │
-│  Insights       │────▶│  (Centralized   │────▶│  Backend        │
-│  (Netlify)      │     │  Communication) │     │                 │
+│  React Apps     │────▶│  API Gateway    │────▶│  Render Backend │
+│  (Netlify)      │     │  Package        │     │  Services       │
 │                 │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
+                               │
+                               │
+                        ┌──────▼──────┐
+                        │             │
+                        │  Supabase   │
+                        │  Database   │
+                        │             │
+                        └─────────────┘
 ```
-
-This architecture eliminates CORS issues by:
-
-1. Ensuring all requests come from a single origin
-2. Handling CORS headers consistently
-3. Providing a unified interface for all applications
-
-### 4. Consistent Error Handling
-
-The API Gateway standardizes error handling across all applications:
-
-```typescript
-// From packages/api-gateway/src/gateway.ts
-private createErrorResponse<T>(error: any): ApiResponse<T> {
-  const response: ApiResponse<T> = {
-    data: null,
-    status: error.response?.status || 500,
-    headers: error.response?.headers || {},
-    success: false,
-    error: {
-      message: error.response?.data?.message || error.message || 'Unknown error',
-      code: error.response?.data?.code || 'UNKNOWN_ERROR',
-      details: error.response?.data || error,
-    },
-  };
-  
-  this.logDebug('Error response:', response);
-  return response;
-}
-```
-
-This ensures that all applications receive errors in a consistent format, making error handling more predictable and reliable.
-
-### 5. Cold Start Mitigation
-
-The API Gateway implements several strategies to mitigate cold start issues:
-
-1. **Health Checks**: Periodic health checks to keep the backend warm
-2. **Connection Pooling**: Reusing connections to reduce startup time
-3. **Caching**: Caching responses to reduce the need for backend calls
-4. **Prefetching**: Proactively fetching data that might be needed soon
-
-```typescript
-// From packages/api-gateway/src/gateway.ts
-private async healthCheck(): Promise<void> {
-  try {
-    await this.axiosInstance.get('/health');
-    this.logDebug('Health check successful');
-  } catch (error) {
-    this.logDebug('Health check failed:', error);
-  }
-}
-
-// Start periodic health checks
-public startHealthChecks(interval: number = 300000): void {
-  this.healthCheckInterval = setInterval(() => {
-    this.healthCheck();
-  }, interval);
-}
-```
-
-### 6. Authentication Token Management
-
-The API Gateway provides a centralized mechanism for managing authentication tokens:
-
-```typescript
-// From apps/market-insights/src/services/api-client.ts
-public setAuthToken(token: string): void {
-  this.apiGateway.updateConfig({
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-}
-
-public clearAuthToken(): void {
-  const headers: Record<string, string> = {};
-  this.apiGateway.updateConfig({ headers });
-}
-```
-
-This ensures that authentication tokens are handled consistently across all applications.
 
 ## Implementation Details
 
-### API Gateway Configuration
+### 1. API Gateway Client
 
-The API Gateway is configured with sensible defaults that can be overridden as needed:
-
-```typescript
-// Default configuration
-const defaultConfig: ApiGatewayConfig = {
-  baseURL: 'https://osbackend-zl1h.onrender.com',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  debug: false,
-  retryConfig: {
-    maxRetries: 3,
-    retryDelay: 1000,
-    retryStatusCodes: [408, 429, 500, 502, 503, 504],
-  },
-};
-```
-
-### Middleware System
-
-The API Gateway includes a flexible middleware system for request/response transformations:
+The API Gateway is built on top of Axios with enhanced features:
 
 ```typescript
-// Example middleware configuration
-const config: ApiGatewayConfig = {
-  baseURL: 'https://osbackend-zl1h.onrender.com',
-  middleware: {
-    request: [
-      // Add request timestamp
-      (config) => {
-        if (config.headers) {
-          config.headers['X-Request-Time'] = new Date().toISOString();
-        }
-        return config;
-      },
-    ],
-    response: [
-      // Log response time
-      (response) => {
-        const requestTime = response.config.headers?.['X-Request-Time'];
-        if (requestTime) {
-          const responseTime = Date.now() - new Date(requestTime as string).getTime();
-          console.log(`Request to ${response.config.url} completed in ${responseTime}ms`);
-        }
-        return response;
-      },
-    ],
-    error: [
-      // Handle specific error types
-      (error) => {
-        if (error.response?.status === 401) {
-          console.error('Authentication error - token may have expired');
-          // Here you could trigger a token refresh or redirect to login
-        }
-        return Promise.reject(error);
-      },
-    ],
-  },
-};
-```
+// packages/api-gateway/src/gateway.ts
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axiosRetry from 'axios-retry';
+import { setupCache } from 'axios-cache-adapter';
 
-## Integration with Applications
-
-### Market Insights Integration
-
-The Market Insights application integrates with the API Gateway through a specialized client:
-
-```typescript
-// From apps/market-insights/src/services/api-client.ts
-import { ApiGateway } from '../../../../packages/api-gateway/src/gateway';
-import { ApiGatewayConfig, RequestOptions } from '../../../../packages/api-gateway/src/types';
-import { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-
-export class MarketInsightsApiClient {
-  private apiGateway: ApiGateway;
-  private static instance: MarketInsightsApiClient;
-
-  constructor(config: ApiGatewayConfig) {
-    this.apiGateway = new ApiGateway(config);
-  }
-
-  // ... methods for interacting with the API
+export interface ApiGatewayConfig extends AxiosRequestConfig {
+  retries?: number;
+  retryDelay?: number;
+  cacheEnabled?: boolean;
+  cacheTTL?: number;
+  timeout?: number;
+  circuitBreaker?: {
+    failureThreshold: number;
+    resetTimeout: number;
+  };
 }
 
-// Create and export a default instance
-export default createMarketInsightsApiClient('https://osbackend-zl1h.onrender.com');
-```
+export class ApiGateway {
+  private client: AxiosInstance;
+  private circuitOpen: boolean = false;
+  private failureCount: number = 0;
+  private resetTimeoutId: NodeJS.Timeout | null = null;
+  private config: ApiGatewayConfig;
 
-### React Component Usage
-
-React components can use the API Gateway through the specialized client:
-
-```typescript
-// From apps/market-insights/src/examples/ApiGatewayExample.tsx
-import React, { useEffect, useState } from 'react';
-import apiClient from '../services/api-client';
-
-const ApiGatewayExample: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        // Use the API client to fetch categories
-        const categoriesData = await apiClient.getCategories();
-        setCategories(categoriesData);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
+  constructor(config: ApiGatewayConfig) {
+    this.config = {
+      timeout: 10000,
+      retries: 3,
+      retryDelay: 300,
+      cacheEnabled: true,
+      cacheTTL: 60000, // 1 minute
+      circuitBreaker: {
+        failureThreshold: 5,
+        resetTimeout: 30000 // 30 seconds
+      },
+      ...config
     };
 
-    fetchCategories();
-  }, []);
-  
-  // ... component rendering
+    // Setup cache adapter if enabled
+    const axiosConfig: AxiosRequestConfig = { ...this.config };
+    
+    if (this.config.cacheEnabled) {
+      const cache = setupCache({
+        maxAge: this.config.cacheTTL
+      });
+      axiosConfig.adapter = cache.adapter;
+    }
+
+    this.client = axios.create(axiosConfig);
+
+    // Setup retry logic
+    if (this.config.retries && this.config.retries > 0) {
+      axiosRetry(this.client, {
+        retries: this.config.retries,
+        retryDelay: (retryCount) => {
+          return retryCount * (this.config.retryDelay || 300);
+        },
+        retryCondition: (error) => {
+          // Only retry on network errors or 5xx server errors
+          return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+                 (error.response && error.response.status >= 500);
+        }
+      });
+    }
+
+    // Add request interceptor for circuit breaker
+    this.client.interceptors.request.use((config) => {
+      if (this.circuitOpen) {
+        throw new Error('Circuit is open, request rejected');
+      }
+      return config;
+    });
+
+    // Add response interceptor for circuit breaker
+    this.client.interceptors.response.use(
+      (response) => {
+        // Reset failure count on success
+        this.failureCount = 0;
+        return response;
+      },
+      (error) => {
+        // Increment failure count on error
+        this.failureCount++;
+        
+        // Check if we should open the circuit
+        if (this.config.circuitBreaker && 
+            this.failureCount >= this.config.circuitBreaker.failureThreshold) {
+          this.openCircuit();
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  private openCircuit(): void {
+    this.circuitOpen = true;
+    
+    // Set timeout to reset circuit
+    if (this.resetTimeoutId) {
+      clearTimeout(this.resetTimeoutId);
+    }
+    
+    this.resetTimeoutId = setTimeout(() => {
+      this.circuitOpen = false;
+      this.failureCount = 0;
+    }, this.config.circuitBreaker?.resetTimeout || 30000);
+  }
+
+  public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.get<T>(url, config);
+  }
+
+  public async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.post<T>(url, data, config);
+  }
+
+  public async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.put<T>(url, data, config);
+  }
+
+  public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.delete<T>(url, config);
+  }
+
+  public async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.client.patch<T>(url, data, config);
+  }
+
+  public getAxiosInstance(): AxiosInstance {
+    return this.client;
+  }
+}
+
+export const createApiClient = (config: ApiGatewayConfig): ApiGateway => {
+  return new ApiGateway(config);
 };
 ```
 
-## Benefits
+### 2. Usage in Applications
 
-The API Gateway provides several benefits:
+Applications can use the API Gateway with a simple, consistent interface:
 
-1. **Improved Reliability**: Automatic retries and circuit breaking ensure reliable connections
-2. **Consistent Error Handling**: Standardized error responses across all applications
-3. **Simplified Integration**: A unified interface for all backend services
-4. **Enhanced Performance**: Caching and connection pooling improve response times
-5. **Better Debugging**: Detailed logging and monitoring for troubleshooting
-6. **Centralized Authentication**: Consistent token management across applications
+```typescript
+// apps/market-insights/src/services/api-client.ts
+import { createApiClient } from '@repo/api-gateway';
+
+// Create a configured API client for the Market Insights app
+export const apiClient = createApiClient({
+  baseURL: 'https://osbackend-zl1h.onrender.com',
+  timeout: 15000,
+  retries: 3,
+  cacheEnabled: true,
+  cacheTTL: 5 * 60 * 1000, // 5 minutes
+  circuitBreaker: {
+    failureThreshold: 5,
+    resetTimeout: 60000 // 1 minute
+  }
+});
+
+// Example service using the API client
+export const marketInsightsService = {
+  async getMarketData() {
+    try {
+      const response = await apiClient.get('/api/market-data');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch market data:', error);
+      throw error;
+    }
+  },
+  
+  async getProcedureDetails(id: string) {
+    try {
+      const response = await apiClient.get(`/api/procedures/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch procedure details for ID ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  async searchProcedures(query: string) {
+    try {
+      const response = await apiClient.get('/api/procedures/search', {
+        params: { q: query }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to search procedures:', error);
+      throw error;
+    }
+  }
+};
+```
+
+### 3. Middleware Support
+
+The API Gateway supports middleware for cross-cutting concerns:
+
+```typescript
+// packages/api-gateway/src/middleware.ts
+import { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { ApiGateway } from './gateway';
+
+export type RequestMiddleware = (config: AxiosRequestConfig) => AxiosRequestConfig | Promise<AxiosRequestConfig>;
+export type ResponseMiddleware = (response: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>;
+export type ErrorMiddleware = (error: AxiosError) => any;
+
+export const applyMiddleware = (apiGateway: ApiGateway, options: {
+  request?: RequestMiddleware[];
+  response?: ResponseMiddleware[];
+  error?: ErrorMiddleware[];
+}): void => {
+  const axiosInstance = apiGateway.getAxiosInstance();
+  
+  // Apply request middleware
+  if (options.request && options.request.length > 0) {
+    axiosInstance.interceptors.request.use(
+      async (config) => {
+        let currentConfig = { ...config };
+        
+        for (const middleware of options.request) {
+          currentConfig = await middleware(currentConfig);
+        }
+        
+        return currentConfig;
+      }
+    );
+  }
+  
+  // Apply response middleware
+  if (options.response && options.response.length > 0 || options.error && options.error.length > 0) {
+    axiosInstance.interceptors.response.use(
+      async (response) => {
+        let currentResponse = { ...response };
+        
+        if (options.response) {
+          for (const middleware of options.response) {
+            currentResponse = await middleware(currentResponse);
+          }
+        }
+        
+        return currentResponse;
+      },
+      async (error) => {
+        if (options.error) {
+          let handled = false;
+          let result;
+          
+          for (const middleware of options.error) {
+            try {
+              result = await middleware(error);
+              handled = true;
+              break;
+            } catch (e) {
+              // Continue to next middleware
+            }
+          }
+          
+          if (handled) {
+            return result;
+          }
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+  }
+};
+
+// Example middleware
+export const authMiddleware: RequestMiddleware = (config) => {
+  const token = localStorage.getItem('auth_token');
+  
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return config;
+};
+
+export const loggingMiddleware: RequestMiddleware = (config) => {
+  console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+  return config;
+};
+
+export const errorHandlingMiddleware: ErrorMiddleware = (error) => {
+  if (error.response) {
+    // The request was made and the server responded with a status code
+    // that falls out of the range of 2xx
+    console.error(`[API Error] ${error.response.status}: ${error.response.statusText}`);
+    console.error('Response data:', error.response.data);
+  } else if (error.request) {
+    // The request was made but no response was received
+    console.error('[API Error] No response received:', error.request);
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    console.error('[API Error]', error.message);
+  }
+  
+  return Promise.reject(error);
+};
+```
+
+## Render Backend Connection Strategy
+
+To specifically address the connection issues with the Render backend:
+
+1. **Warm-up Pings**: Implement periodic health checks to prevent cold starts
+2. **Exponential Backoff**: Use increasing delays between retry attempts
+3. **Connection Pooling**: Reuse connections to reduce overhead
+4. **Request Prioritization**: Critical requests get priority handling
+5. **Fallback Mechanisms**: Provide cached or default data when backend is unavailable
+
+### Implementation Example
+
+```typescript
+// apps/market-insights/src/services/render-connection-manager.ts
+import { createApiClient } from '@repo/api-gateway';
+import { applyMiddleware, loggingMiddleware, errorHandlingMiddleware } from '@repo/api-gateway';
+
+// Create a specialized client for Render backend
+const renderClient = createApiClient({
+  baseURL: 'https://osbackend-zl1h.onrender.com',
+  timeout: 20000,
+  retries: 5,
+  retryDelay: 500, // Start with 500ms, will increase exponentially
+  cacheEnabled: true,
+  cacheTTL: 10 * 60 * 1000, // 10 minutes cache
+  circuitBreaker: {
+    failureThreshold: 3,
+    resetTimeout: 60000 // 1 minute
+  }
+});
+
+// Apply middleware
+applyMiddleware(renderClient, {
+  request: [loggingMiddleware],
+  error: [errorHandlingMiddleware]
+});
+
+// Warm-up function to prevent cold starts
+const warmupRenderBackend = () => {
+  console.log('Warming up Render backend...');
+  renderClient.get('/api/health')
+    .then(() => console.log('Render backend is warm'))
+    .catch(() => console.log('Failed to warm up Render backend'));
+};
+
+// Set up periodic warm-up pings (every 5 minutes)
+setInterval(warmupRenderBackend, 5 * 60 * 1000);
+
+// Initial warm-up
+warmupRenderBackend();
+
+export { renderClient };
+```
+
+## Cross-Origin Communication Solution
+
+To address cross-origin communication issues:
+
+1. **Unified CORS Configuration**: Standardize CORS settings across all services
+2. **Proxy Middleware**: Use the API Gateway as a proxy to avoid CORS issues
+3. **Credentials Handling**: Properly handle credentials in cross-origin requests
+
+### CORS Configuration
+
+```typescript
+// packages/api-gateway/src/utils.ts
+import { AxiosRequestConfig } from 'axios';
+
+export const withCredentials = (config: AxiosRequestConfig): AxiosRequestConfig => {
+  return {
+    ...config,
+    withCredentials: true
+  };
+};
+
+export const corsMiddleware = (req: any, res: any, next: any) => {
+  // Set CORS headers for API Gateway server-side implementation
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+};
+```
+
+## Monitoring and Diagnostics
+
+The API Gateway includes monitoring and diagnostics features:
+
+1. **Request/Response Logging**: Track all API interactions
+2. **Performance Metrics**: Measure response times and success rates
+3. **Circuit Breaker Status**: Monitor the health of backend services
+4. **Error Aggregation**: Collect and categorize errors for analysis
+
+### Diagnostics Dashboard Component
+
+```tsx
+// apps/market-insights/src/components/ApiDiagnostics.tsx
+import React, { useEffect, useState } from 'react';
+import { apiClient } from '../services/api-client';
+
+interface ApiMetrics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageResponseTime: number;
+  circuitBreakerStatus: 'closed' | 'open';
+}
+
+export const ApiDiagnostics: React.FC = () => {
+  const [metrics, setMetrics] = useState<ApiMetrics>({
+    totalRequests: 0,
+    successfulRequests: 0,
+    failedRequests: 0,
+    averageResponseTime: 0,
+    circuitBreakerStatus: 'closed'
+  });
+  
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        // In a real implementation, this would come from the API Gateway's metrics
+        const response = await apiClient.get('/api/diagnostics');
+        setMetrics(response.data);
+      } catch (error) {
+        console.error('Failed to fetch API metrics:', error);
+      }
+    };
+    
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  const successRate = metrics.totalRequests > 0 
+    ? (metrics.successfulRequests / metrics.totalRequests * 100).toFixed(1) 
+    : '0';
+  
+  return (
+    <div className="api-diagnostics">
+      <h2>API Connection Diagnostics</h2>
+      
+      <div className="metrics-grid">
+        <div className="metric-card">
+          <h3>Success Rate</h3>
+          <div className="metric-value">{successRate}%</div>
+        </div>
+        
+        <div className="metric-card">
+          <h3>Total Requests</h3>
+          <div className="metric-value">{metrics.totalRequests}</div>
+        </div>
+        
+        <div className="metric-card">
+          <h3>Avg Response Time</h3>
+          <div className="metric-value">{metrics.averageResponseTime.toFixed(0)} ms</div>
+        </div>
+        
+        <div className="metric-card">
+          <h3>Circuit Status</h3>
+          <div className={`metric-value ${metrics.circuitBreakerStatus === 'open' ? 'error' : 'success'}`}>
+            {metrics.circuitBreakerStatus.toUpperCase()}
+          </div>
+        </div>
+      </div>
+      
+      <div className="connection-status">
+        <h3>Backend Connection</h3>
+        <div className="status-indicator">
+          <span className={`status-dot ${metrics.circuitBreakerStatus === 'closed' ? 'green' : 'red'}`}></span>
+          {metrics.circuitBreakerStatus === 'closed' ? 'Connected' : 'Disconnected'}
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+## Best Practices
+
+1. **Consistent Error Handling**: Use the API Gateway's error handling mechanisms consistently across all applications.
+
+2. **Cache Strategically**: Cache responses based on their volatility and importance.
+
+3. **Monitor Backend Health**: Use the circuit breaker pattern to detect and respond to backend issues.
+
+4. **Implement Fallbacks**: Always provide fallback behavior when the backend is unavailable.
+
+5. **Optimize Payload Size**: Minimize the data transferred between frontend and backend.
+
+6. **Use TypeScript Interfaces**: Define shared interfaces for API requests and responses.
+
+7. **Document API Endpoints**: Maintain comprehensive documentation of all backend endpoints.
 
 ## Conclusion
 
-The API Gateway effectively addresses the connection problems between the Netlify frontend and Render backend by providing a robust, reliable, and consistent interface for making HTTP requests. By centralizing communication and implementing advanced features like retry logic, circuit breaking, and caching, the API Gateway ensures a smooth user experience even in the face of temporary backend issues.
+The API Gateway solution addresses the connection issues between the Netlify frontend and Render backend by providing:
 
-This solution is a key component of the monorepo architecture, enabling seamless integration between different applications and services while maintaining high reliability and performance.
+1. **Resilience**: Automatic retries, circuit breaker, and caching
+2. **Consistency**: Unified API interface across all applications
+3. **Monitoring**: Built-in diagnostics and error tracking
+4. **Performance**: Connection pooling and request optimization
+
+By implementing this solution in the monorepo architecture, we ensure reliable communication between all RepSpheres applications and backend services.

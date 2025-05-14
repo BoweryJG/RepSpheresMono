@@ -1,123 +1,255 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient as OriginalSupabaseClient } from '@supabase/supabase-js';
 
-/**
- * Supabase configuration
- */
-export interface SupabaseConfig {
-  /**
-   * Supabase URL
-   */
-  url: string;
-  
-  /**
-   * Supabase API key
-   */
-  key: string;
-  
-  /**
-   * Custom headers
-   */
+// Define the database schema types
+export type Tables = {
+  aesthetic_procedures: {
+    Row: {
+      id: number;
+      name: string;
+      description: string;
+      category_id: number;
+      average_cost: number;
+      recovery_time: string;
+      popularity_score: number;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      name: string;
+      description: string;
+      category_id: number;
+      average_cost?: number;
+      recovery_time?: string;
+      popularity_score?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      name?: string;
+      description?: string;
+      category_id?: number;
+      average_cost?: number;
+      recovery_time?: string;
+      popularity_score?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  aesthetic_categories: {
+    Row: {
+      id: number;
+      name: string;
+      description: string;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      name: string;
+      description: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      name?: string;
+      description?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  dental_procedures: {
+    Row: {
+      id: number;
+      name: string;
+      description: string;
+      category_id: number;
+      average_cost: number;
+      recovery_time: string;
+      popularity_score: number;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      name: string;
+      description: string;
+      category_id: number;
+      average_cost?: number;
+      recovery_time?: string;
+      popularity_score?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      name?: string;
+      description?: string;
+      category_id?: number;
+      average_cost?: number;
+      recovery_time?: string;
+      popularity_score?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  dental_categories: {
+    Row: {
+      id: number;
+      name: string;
+      description: string;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      name: string;
+      description: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      name?: string;
+      description?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  companies: {
+    Row: {
+      id: number;
+      name: string;
+      description: string;
+      website: string;
+      logo_url: string;
+      industry: string;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      name: string;
+      description: string;
+      website?: string;
+      logo_url?: string;
+      industry: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      name?: string;
+      description?: string;
+      website?: string;
+      logo_url?: string;
+      industry?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  market_growth: {
+    Row: {
+      id: number;
+      procedure_id: number;
+      procedure_type: string;
+      year: number;
+      growth_rate: number;
+      market_size: number;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      procedure_id: number;
+      procedure_type: string;
+      year: number;
+      growth_rate: number;
+      market_size: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      procedure_id?: number;
+      procedure_type?: string;
+      year?: number;
+      growth_rate?: number;
+      market_size?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+  news_articles: {
+    Row: {
+      id: number;
+      title: string;
+      content: string;
+      source: string;
+      published_date: string;
+      url: string;
+      image_url: string;
+      category: string;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: number;
+      title: string;
+      content: string;
+      source: string;
+      published_date: string;
+      url: string;
+      image_url?: string;
+      category: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: number;
+      title?: string;
+      content?: string;
+      source?: string;
+      published_date?: string;
+      url?: string;
+      image_url?: string;
+      category?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+  };
+};
+
+export type Database = {
+  public: {
+    Tables: Tables;
+    Views: {
+      [key: string]: {
+        Row: Record<string, unknown>;
+      };
+    };
+    Functions: {
+      [key: string]: unknown;
+    };
+  };
+};
+
+// Export the typed Supabase client
+export type SupabaseClient = OriginalSupabaseClient<Database>;
+
+// Options for creating a Supabase client
+export interface SupabaseOptions {
+  autoRefreshToken?: boolean;
+  persistSession?: boolean;
+  detectSessionInUrl?: boolean;
   headers?: Record<string, string>;
 }
 
-/**
- * Supabase client options
- */
-export interface SupabaseClientOptions {
-  /**
-   * Whether to persist the session
-   */
-  persistSession?: boolean;
-  
-  /**
-   * Whether to automatically refresh the token
-   */
-  autoRefreshToken?: boolean;
-  
-  /**
-   * Whether to detect the session in the URL
-   */
-  detectSessionInUrl?: boolean;
-  
-  /**
-   * Database schema
-   */
-  schema?: string;
-  
-  /**
-   * Whether to enable realtime subscriptions
-   */
-  realtimeEnabled?: boolean;
-}
-
-/**
- * Supabase query options
- */
-export interface SupabaseQueryOptions {
-  /**
-   * Success callback
-   */
-  onSuccess?: (data: any) => void;
-  
-  /**
-   * Error callback
-   */
-  onError?: (error: any) => void;
-  
-  /**
-   * Whether to throw on error
-   */
-  throwOnError?: boolean;
-}
-
-/**
- * Table definitions for type safety
- */
-export interface Tables {
-  // Define your tables here for type safety
-  users: {
-    id: string;
-    email: string;
-    created_at: string;
-    updated_at: string;
-    [key: string]: any;
-  };
-  
-  profiles: {
-    id: string;
-    user_id: string;
-    first_name?: string;
-    last_name?: string;
-    avatar_url?: string;
-    created_at: string;
-    updated_at: string;
-    [key: string]: any;
-  };
-  
-  // Add more tables as needed
-}
-
-/**
- * Typed Supabase client
- */
-export type TypedSupabaseClient = SupabaseClient<Tables>;
-
-/**
- * Supabase context
- */
-export interface SupabaseContext {
-  /**
-   * Supabase client
-   */
-  client: TypedSupabaseClient;
-  
-  /**
-   * Whether the client is loading
-   */
-  isLoading: boolean;
-  
-  /**
-   * Error if any
-   */
-  error: Error | null;
+// Error type for Supabase client
+export interface SupabaseError {
+  message: string;
+  status?: number;
+  code?: string;
 }

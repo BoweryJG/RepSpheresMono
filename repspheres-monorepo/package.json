@@ -7,12 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npx turbo build --filter=./packages/*",
-    "dev": "npx turbo dev",
-    "lint": "npx turbo lint",
-    "test": "npx turbo test",
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter=./packages/*",
+    "build:apps": "turbo run build --filter=./apps/*",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md,js,jsx}\"",
-    "build:types": "npx turbo build:types"
+    "build:types": "turbo run build:types"
   },
   "devDependencies": {
     "prettier": "^3.0.0",

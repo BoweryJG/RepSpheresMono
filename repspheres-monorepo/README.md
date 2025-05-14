@@ -1,228 +1,173 @@
 # RepSpheres Monorepo
 
-A unified monorepo architecture for RepSpheres applications, designed to solve cross-origin communication problems, backend connection issues, and provide a consistent development experience across all applications.
+This monorepo contains all RepSpheres applications and shared packages, providing a unified architecture for the entire platform.
+
+## Overview
+
+The RepSpheres monorepo consolidates multiple React applications into a single codebase, addressing connection problems between the Netlify frontend and Render backend, as well as routing issues between applications.
+
+## Applications
+
+The monorepo includes the following applications:
+
+- **Market Insights**: Analytics and market data for aesthetic and dental procedures
+- **Workspace**: Collaborative workspace for teams
+- **Linguistics**: Language processing and analysis tools
+- **SphereOS/CRM**: Customer relationship management system
+- **Global RepSpheres**: Main application and portal
+
+## Shared Packages
+
+The monorepo includes the following shared packages:
+
+- **api-gateway**: Unified API client for backend communication with resilience features
+- **supabase-client**: Shared Supabase client with React integration
+- **ui**: Shared UI components and design system
+- **router**: Unified routing system for cross-application navigation
+- **state**: Shared state management
+- **types**: TypeScript type definitions shared across applications
+- **utils**: Utility functions and helpers
 
 ## Project Structure
 
 ```
 repspheres-monorepo/
-├── apps/                  # Application-specific code
-│   ├── api-client/        # API client application
-│   ├── crm/               # CRM application
-│   ├── linguistics/       # Linguistics application
-│   ├── main/              # Main application (globalrepspheres)
-│   ├── market-insights/   # Market Insights application
-│   ├── state/             # State management application
-│   ├── types/             # TypeScript types application
-│   ├── ui/                # UI components application
-│   ├── utils/             # Utilities application
-│   └── workspace/         # Workspace application
-│
-└── packages/              # Shared code and services
-    ├── api-gateway/       # API Gateway for unified backend communication
-    ├── router/            # Shared routing system
-    ├── supabase-client/   # Shared Supabase client
-    ├── ui/                # Shared UI components
-    └── utils/             # Shared utilities
+├── apps/
+│   ├── market-insights/     # Market Insights application
+│   ├── workspace/           # Workspace application
+│   ├── linguistics/         # Linguistics application
+│   ├── crm/                 # SphereOS/CRM application
+│   └── main/                # Global RepSpheres application
+├── packages/
+│   ├── api-gateway/         # API Gateway for backend communication
+│   ├── supabase-client/     # Shared Supabase client
+│   ├── ui/                  # Shared UI components
+│   ├── router/              # Unified routing system
+│   ├── state/               # Shared state management
+│   ├── types/               # Shared TypeScript types
+│   └── utils/               # Shared utility functions
+├── docs/                    # Documentation
+│   ├── migration-guides/    # Guides for migrating applications
+│   └── api-integration/     # API integration documentation
+└── scripts/                 # Build and utility scripts
 ```
-
-## Key Features
-
-- **Unified API Gateway**: Centralized communication layer between frontend applications and backend services
-- **Shared Routing**: Seamless navigation between applications
-- **Shared UI Components**: Consistent look and feel across all applications
-- **Shared State Management**: Centralized state handling
-- **Shared TypeScript Types**: Type consistency across applications
-- **Shared Supabase Client**: Unified database access
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- npm 8+
+- npm or yarn
+- Git
 
 ### Installation
 
+1. Clone the repository:
+
 ```bash
-# Clone the repository
 git clone https://github.com/repspheres/repspheres-monorepo.git
 cd repspheres-monorepo
+```
 
-# Install dependencies
+2. Install dependencies:
+
+```bash
 npm install
+```
+
+3. Build all packages:
+
+```bash
+npm run build
 ```
 
 ### Development
 
+To start development on a specific application:
+
 ```bash
-# Start all applications in development mode
-npm run dev
-
-# Start a specific application
-npm run dev -- --filter=market-insights
-
-# Build all applications
-npm run build
-
-# Build a specific application
-npm run build -- --filter=market-insights
-
-# Run tests
-npm test
+# Start the Market Insights application
+npm run dev --filter=market-insights
 ```
 
-## API Gateway
+To work on a shared package:
 
-The API Gateway provides a unified interface for making HTTP requests to backend services. It handles:
-
-- Authentication
-- Error handling
-- Retries
-- Circuit breaking
-- Request/response transformation
-- Logging
-
-### Usage
-
-```typescript
-import { ApiGateway } from '@repspheres/api-gateway';
-
-const apiGateway = new ApiGateway({
-  baseURL: 'https://osbackend-zl1h.onrender.com',
-  timeout: 5000,
-  headers: {
-    'Authorization': 'Bearer YOUR_TOKEN',
-  },
-});
-
-// Make a GET request
-const response = await apiGateway.get('/api/users');
-
-if (response.success) {
-  console.log('Users:', response.data);
-} else {
-  console.error('Error:', response.error);
-}
+```bash
+# Start the UI package in watch mode
+npm run dev --filter=ui
 ```
 
-See the [API Gateway README](./packages/api-gateway/README.md) for more details.
+## Key Features
 
-## Shared Router
+### API Gateway
 
-The shared router provides a unified routing system for all applications. It handles:
+The API Gateway provides a unified interface for all backend communication, with built-in resilience features:
 
+- Automatic retry logic for transient failures
+- Circuit breaker pattern to prevent cascading failures
+- Request caching to reduce backend load
+- Consistent error handling across all applications
+
+[Learn more about the API Gateway](./docs/api-gateway-connection-solution.md)
+
+### Supabase Client
+
+The shared Supabase client provides:
+
+- Consistent client configuration
+- React integration through context and hooks
+- TypeScript support with shared database types
+- Higher-order components for class components
+
+[Learn more about the Supabase Client](./docs/supabase-client-integration.md)
+
+### Unified Routing
+
+The router package enables seamless navigation between applications:
+
+- Shared route definitions
 - Cross-application navigation
-- Route guards
-- Route parameters
-- Nested routes
+- Route-based code splitting
+- Deep linking support
 
-### Usage
+### Shared UI Components
 
-```typescript
-import { Router, Route } from '@repspheres/router';
+The UI package provides a consistent design system across all applications:
 
-const AppRouter = () => (
-  <Router>
-    <Route path="/" component={Home} />
-    <Route path="/market-insights" component={MarketInsights} />
-    <Route path="/workspace" component={Workspace} />
-  </Router>
-);
-```
+- Material UI based components
+- Shared theming
+- Responsive layouts
+- Accessibility-focused design
 
-## Shared UI Components
+## Application Migration
 
-The shared UI components provide a consistent look and feel across all applications. They include:
+Each application is being migrated into the monorepo structure. See the migration guides for details:
 
-- Buttons
-- Cards
-- Forms
-- Layouts
-- Navigation
-- Tables
+- [Market Insights Migration Guide](./docs/migration-guides/market-insights-migration.md)
 
-### Usage
+## Scripts
 
-```typescript
-import { Button, Card } from '@repspheres/ui';
-
-const MyComponent = () => (
-  <Card title="My Card">
-    <p>Card content</p>
-    <Button variant="primary">Click Me</Button>
-  </Card>
-);
-```
-
-## Shared Supabase Client
-
-The shared Supabase client provides unified database access across all applications. It handles:
-
-- Authentication
-- Data fetching
-- Data mutations
-- Realtime subscriptions
-
-### Usage
-
-```typescript
-import { supabase } from '@repspheres/supabase-client';
-
-// Fetch data
-const { data, error } = await supabase
-  .from('procedures')
-  .select('*')
-  .limit(10);
-
-// Insert data
-const { data, error } = await supabase
-  .from('procedures')
-  .insert([{ name: 'New Procedure', category_id: 1 }]);
-```
-
-## Integration with Existing Applications
-
-The monorepo is designed to gradually integrate existing applications. The process involves:
-
-1. Creating a new application in the `apps` directory
-2. Moving the existing application code into the new directory
-3. Updating imports to use the shared packages
-4. Testing the application to ensure it works correctly
-5. Deploying the application from the monorepo
+- `npm run build`: Build all packages and applications
+- `npm run dev`: Start development mode for all packages and applications
+- `npm run lint`: Run linting on all packages and applications
+- `npm run test`: Run tests on all packages and applications
+- `npm run clean`: Clean build artifacts
 
 ## Deployment
 
-The monorepo uses Turborepo for build orchestration and can be deployed to various platforms:
+The monorepo is configured for deployment to Netlify (frontend) and Render (backend):
 
-### Netlify
-
-```bash
-# Deploy all applications to Netlify
-npm run deploy:netlify
-
-# Deploy a specific application to Netlify
-npm run deploy:netlify -- --filter=market-insights
-```
-
-### Render
-
-```bash
-# Deploy all applications to Render
-npm run deploy:render
-
-# Deploy a specific application to Render
-npm run deploy:render -- --filter=market-insights
-```
+- Frontend applications are deployed to Netlify
+- Backend services are deployed to Render
+- Shared packages are published to a private npm registry
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -am 'Add my feature'`
-4. Push to the branch: `git push origin feature/my-feature`
-5. Submit a pull request
+1. Create a new branch for your feature or bugfix
+2. Make your changes
+3. Run tests and linting
+4. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited.
