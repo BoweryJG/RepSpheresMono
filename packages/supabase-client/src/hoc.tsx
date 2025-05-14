@@ -3,7 +3,7 @@ import { SupabaseProvider } from './context';
 import { useSession } from './hooks';
 
 /**
- * Wraps component with SupabaseProvider.
+ * Wraps a component with SupabaseProvider.
  */
 export function withSupabase<P>(Component: ComponentType<P>): ComponentType<P> {
   return function SupabaseWrapped(props: P) {
