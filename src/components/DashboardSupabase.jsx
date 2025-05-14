@@ -73,7 +73,7 @@ import {
 } from 'recharts';
 
 import { supabaseDataService } from '../services/supabase/supabaseDataService';
-import { runFullVerification } from '../services/supabase/verifySupabaseData';
+// import { runFullVerification } from '../services/supabase/verifySupabaseData'; // Removed problematic import
 import CompaniesTab from './DashboardTab5';
 import MetropolitanMarketsTab from './DashboardTab6';
 import MarketNewsTab from './MarketNewsTab';
@@ -127,24 +127,50 @@ export default function DashboardSupabase({ user }) {
   const verifyData = useCallback(async () => {
     try {
       setVerificationLoading(true);
-      console.log('Running data verification...');
+      console.log('Running data verification (client-side)...');
       
-      const result = await runFullVerification();
+      // Use a method from supabaseDataService, e.g., re-initialize or a dedicated client-safe verification
+      // For now, let's use the lightweightVerification or re-initialize.
+      // Re-calling initialize() might be heavy, let's assume lightweightVerification is better for ad-hoc checks.
+      // However, initialize() already stores verificationResult.
+      // Let's call initialize and use its stored result if available, or a lightweight one.
+      
+      let result = supabaseDataService.verificationResult;
+      if (!result || (new Date() - new Date(supabaseDataService.lastVerification)) > 300000) { // Re-verify if no result or older than 5 mins
+        console.log('Performing new verification via supabaseDataService.initialize()');
+        const initResult = await supabaseDataService.initialize(); // This calls runFullVerification internally only if not in prod.
+        result = initResult.verificationResult || await supabaseDataService.lightweightVerification(); // Fallback if initialize didn't populate it
+      } else {
+        console.log('Using cached verification result.');
+      }
+      
       setVerificationResult(result);
       
-      // Update data status
-      setDataStatus({
-        connection: result.connection.success,
-        tablesOk: result.tables?.success,
-        dataOk: result.data?.success,
-        lastVerified: new Date().toISOString()
-      });
+      if (result) {
+        setDataStatus({
+          connection: result.connection?.success,
+          tablesOk: result.tables?.success,
+          dataOk: result.data?.success,
+          lastVerified: supabaseDataService.lastVerification || new Date().toISOString()
+        });
+      } else {
+        // Handle case where result is unexpectedly null/undefined
+        setDataStatus({
+          connection: false,
+          tablesOk: false,
+          dataOk: false,
+          lastVerified: new Date().toISOString()
+        });
+         console.error('Verification result was unexpectedly empty.');
+      }
       
       setVerificationLoading(false);
-      return result;
+      return result || { success: false, error: "Verification data not available." };
     } catch (err) {
       console.error('Error during data verification:', err);
       setVerificationLoading(false);
+      setVerificationResult({ success: false, error: err.message });
+      setDataStatus({ connection: false, tablesOk: false, dataOk: false, lastVerified: new Date().toISOString() });
       return { success: false, error: err.message };
     }
   }, []);

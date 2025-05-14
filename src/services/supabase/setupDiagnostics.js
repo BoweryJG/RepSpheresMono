@@ -13,7 +13,7 @@ import { supabase } from './supabaseClient.js';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import colors from 'colors/safe.js';
+import * as colors from 'colors/safe.js';
 import { fileURLToPath } from 'url';
 
 // Initialize environment

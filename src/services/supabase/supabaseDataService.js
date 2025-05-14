@@ -1,7 +1,8 @@
 import { supabase } from './supabaseClient.js';
 import { loadAllDataToSupabase, checkDataLoaded } from './dataLoader.js';
 import { getCurrentSession, signInWithEmail } from './supabaseAuth.js';
-import { runFullVerification, checkTables } from './verifySupabaseData.js';
+// Removed: import { runFullVerification, checkTables } from './verifySupabaseData.js'; // These are Node-specific
+// REMOVE THIS COLORS IMPORT AS WELL IF IT EXISTS AND IS NOT USED, OR REPLACE USAGE
 
 /**
  * Class to fetch market insight data from Supabase
@@ -116,14 +117,15 @@ class SupabaseDataService {
       }
 
       // Regular verification for development environments
-      console.log('[Supabase Service] Running full verification for development');
-      const verificationResult = await runFullVerification();
+      console.log('[Supabase Service] Running lightweight verification for development (full verification is Node-only)');
+      // const verificationResult = await runFullVerification(); // REMOVED NODE-SPECIFIC CALL
+      const verificationResult = await this.lightweightVerification(); // Use browser-safe verification
       this.verificationResult = verificationResult;
       this.lastVerification = new Date();
       
       // If verification failed due to connection issues, bail early
-      if (!verificationResult.connection.success) {
-        console.error('[Supabase Service] Connection verification failed:', verificationResult.connection.error);
+      if (!verificationResult.success && verificationResult.message && verificationResult.message.includes("Connection error")) {
+        console.error('[Supabase Service] Connection verification failed:', verificationResult.message);
         return { 
           success: false, 
           error: 'Could not connect to Supabase database', 
@@ -131,24 +133,28 @@ class SupabaseDataService {
         };
       }
       
-      console.log('[Supabase Service] Connection verified. Checking data availability...');
+      console.log('[Supabase Service] Connection verified (or check passed). Checking data availability...');
       
-      // Check if data is already loaded
+      // Check if data is already loaded (this function should be browser-safe)
       const isDataAlreadyLoaded = await checkDataLoaded();
       
       if (!isDataAlreadyLoaded) {
-        console.log('[Supabase Service] Data not loaded yet. Setting up schema and loading data...');
-        // Setup schema and load data
+        console.log('[Supabase Service] Data not loaded yet. Setting up schema (client-side check) and attempting to load data (if applicable for client)...');
+        // Setup schema (client-side safe version)
         await this.setupSchema();
-        await loadAllDataToSupabase();
-        
-        // Verify again after loading
-        const postLoadVerification = await checkTables();
+        // loadAllDataToSupabase might be Node-specific. If so, this should not be called client-side.
+        // For now, assuming it might have some client-side utility or fails gracefully.
+        // Ideally, data loading is a backend/CLI process.
+        // await loadAllDataToSupabase(); 
+        console.warn('[Supabase Service] loadAllDataToSupabase() was skipped in client-side initialize. Data should be pre-loaded.');
+
+        // Verify tables again using lightweight check
+        const postLoadVerification = await this.lightweightVerification(); // Use browser-safe
         if (!postLoadVerification.success) {
-          console.warn('[Supabase Service] Some tables still missing after data load:', postLoadVerification.tables);
+          console.warn('[Supabase Service] Some tables might still be missing or empty after attempted setup:', postLoadVerification.tables);
         }
       } else {
-        console.log('[Supabase Service] Data already loaded in Supabase');
+        console.log('[Supabase Service] Data already loaded in Supabase (or check passed)');
       }
       
       console.log('[Supabase Service] Development initialization complete');
@@ -156,7 +162,7 @@ class SupabaseDataService {
 
       return { 
         success: true, 
-        message: 'Supabase data service initialized successfully', 
+        message: 'Supabase data service initialized successfully for client', 
         verificationResult 
       };
     } catch (error) {
@@ -1013,34 +1019,25 @@ class SupabaseDataService {
    */
   async verifyAndReloadDataIfNeeded() {
     try {
-      console.log('Verifying data integrity...');
+      console.log('Verifying data integrity (client-side)...');
       
-      // Run verification check
-      const verificationResult = await runFullVerification();
+      // Run browser-safe verification check
+      const verificationResult = await this.lightweightVerification(); // Use browser-safe
       this.verificationResult = verificationResult;
       this.lastVerification = new Date();
       
       if (!verificationResult.success) {
-        console.warn('Data verification failed, attempting to reload data...');
-        
-        // Try to reload all data
-        await loadAllDataToSupabase();
-        
-        // Verify again after reloading
-        const reVerificationResult = await runFullVerification();
-        if (!reVerificationResult.success) {
-          console.error('Data still invalid after reload attempt');
-          return false;
-        }
-        
-        console.log('Data successfully reloaded');
-        return true;
+        console.warn('Data verification failed (client-side). Manual reload or backend process might be needed.');
+        // In a client context, we typically cannot trigger Node-based data loading.
+        // await loadAllDataToSupabase(); // This is likely Node-specific
+        console.error('Client-side cannot execute full data reload. Please run server-side scripts if data is missing.');
+        return false; // Indicate that client-side reload isn't fully possible for deep issues
       }
       
-      console.log('Data verification passed');
+      console.log('Data verification passed (client-side)');
       return true;
     } catch (error) {
-      console.error('Error during data verification and reload:', error);
+      console.error('Error during client-side data verification:', error);
       return false;
     }
   }

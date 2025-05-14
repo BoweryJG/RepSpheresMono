@@ -103,9 +103,7 @@ function HomePage() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  // State to control the visibility of the Market Insights preview
-  const [showMarketInsights, setShowMarketInsights] = useState(false);
-  
+  // Always show Market Insights on the main page as a core feature
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Hero Section */}
@@ -150,52 +148,124 @@ function HomePage() {
         />
       </Paper>
       
-      {/* Market Insights Preview Section */}
-      {showMarketInsights && (
-        <Paper 
-          elevation={3}
+      {/* Market Insights Section - Featured prominently */}
+      <Paper 
+        elevation={4}
+        sx={{ 
+          p: { xs: 2, md: 4 }, 
+          mb: 6, 
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)',
+          boxShadow: '0 10px 20px rgba(123, 31, 162, 0.4)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Decorative background elements */}
+        <Box 
           sx={{ 
-            p: 3, 
-            mb: 6, 
-            borderRadius: 3,
-            background: 'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)',
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography 
-              variant="h5" 
-              component="h2" 
-              sx={{ 
-                fontWeight: 700,
-                color: 'white'
-              }}
-            >
-              Market Insights Preview
-            </Typography>
+            position: 'absolute', 
+            top: -20, 
+            right: -20, 
+            width: 150, 
+            height: 150, 
+            borderRadius: '50%', 
+            background: 'rgba(255,255,255,0.12)',
+            zIndex: 0
+          }} 
+        />
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            bottom: -30, 
+            left: 100, 
+            width: 120, 
+            height: 120, 
+            borderRadius: '50%', 
+            background: 'rgba(255,255,255,0.08)',
+            zIndex: 0
+          }} 
+        />
+        
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: { xs: 2, md: 3 },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 2, sm: 0 }
+          }}>
+            <Box>
+              <Typography 
+                variant="h3" 
+                component="h2" 
+                sx={{ 
+                  fontWeight: 700,
+                  color: 'white',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.5rem' },
+                  mb: 1
+                }}
+              >
+                Market Insights Dashboard
+              </Typography>
+              
+              <Typography 
+                variant="h6"
+                sx={{ 
+                  color: 'rgba(255,255,255,0.9)',
+                  maxWidth: '800px',
+                  fontWeight: '400'
+                }}
+              >
+                Real-time market data and trends for dental and aesthetic procedures
+              </Typography>
+            </Box>
+            
             <Button 
               variant="contained" 
               color="secondary"
-              onClick={() => setShowMarketInsights(false)}
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+              href="/market-insights"
+              size="large"
+              sx={{ 
+                bgcolor: 'rgba(255,255,255,0.25)', 
+                color: 'white',
+                fontWeight: 'bold',
+                px: 3,
+                py: 1.5,
+                borderRadius: 2,
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.35)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 12px rgba(0,0,0,0.2)'
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
             >
-              Hide Preview
+              View Full Dashboard
             </Button>
           </Box>
           
           <Box sx={{ 
             bgcolor: 'white', 
             borderRadius: 2, 
-            height: '400px', 
+            height: { xs: '500px', md: '600px' },
             overflow: 'auto',
-            p: 2
+            p: { xs: 2, md: 3 },
+            boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              boxShadow: 'inset 0 2px 15px rgba(0,0,0,0.15)'
+            }
           }}>
             <MarketInsightsAdapter 
               supabaseUrl={supabaseUrl}
               supabaseKey={supabaseKey}
             />
           </Box>
-        </Paper>
-      )}
+        </Box>
+      </Paper>
       
       {/* Main Content */}
       <Grid container spacing={4}>
@@ -259,53 +329,63 @@ function HomePage() {
             </Typography>
             
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              {!showMarketInsights && (
-                <Button 
-                  variant="contained" 
-                  color="secondary"
-                  onClick={() => setShowMarketInsights(true)}
-                  sx={{ 
-                    background: 'linear-gradient(90deg, #7b1fa2, #ba68c8)',
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                gap: 2, 
+                justifyContent: 'center',
+                width: '100%' 
+              }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component="a"
+                  href="/dashboard"
+                  fullWidth
+                  sx={{
+                    background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
                     color: 'white',
-                    mb: 2,
+                    padding: '12px 24px',
+                    borderRadius: '4px',
                     fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    boxShadow: '0 4px 8px rgba(25, 118, 210, 0.3)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    textAlign: 'center',
+                    '&:hover': {
+                      background: 'linear-gradient(90deg, #1565c0, #1976d2)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 12px rgba(25, 118, 210, 0.4)'
+                    }
                   }}
                 >
-                  Show Market Insights Preview
+                  View Full Dashboard
                 </Button>
-              )}
-              <a 
-                href="/dashboard" 
-                style={{ 
-                  textDecoration: 'none', 
-                  display: 'inline-block',
-                  background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                }}
-              >
-                View Market Insights Dashboard
-              </a>
-              
-              <a 
-                href="/market-insights" 
-                style={{ 
-                  textDecoration: 'none', 
-                  display: 'inline-block',
-                  background: 'linear-gradient(90deg, #7b1fa2, #ba68c8)',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                }}
-              >
-                Explore Full Market Insights
-              </a>
+                
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  component="a"
+                  href="/market-insights"
+                  fullWidth
+                  sx={{
+                    background: 'linear-gradient(90deg, #7b1fa2, #ba68c8)',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '4px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 4px 8px rgba(123, 31, 162, 0.3)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    textAlign: 'center',
+                    '&:hover': {
+                      background: 'linear-gradient(90deg, #6a1b9a, #9c27b0)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 12px rgba(123, 31, 162, 0.4)'
+                    }
+                  }}
+                >
+                  Explore Full Market Insights
+                </Button>
+              </Box>
             </Box>
           </Paper>
         </Grid>

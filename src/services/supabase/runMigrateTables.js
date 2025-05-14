@@ -15,7 +15,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import colors from 'colors/safe.js';
+import * as colors from 'colors/safe.js';
 
 // Initialize environment and colors
 dotenv.config();

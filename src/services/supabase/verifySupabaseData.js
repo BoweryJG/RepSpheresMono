@@ -9,7 +9,7 @@
 
 import { supabase } from './supabaseClient.js';
 import dotenv from 'dotenv';
-import colors from 'colors/safe.js';
+import * as colors from 'colors/safe.js';
 
 // Initialize environment
 dotenv.config();

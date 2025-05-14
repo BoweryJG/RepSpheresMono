@@ -13,7 +13,7 @@
 import { exec } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import colors from 'colors/safe.js';
+import * as colors from 'colors/safe.js';
 
 // Get the directory path of the current module
 const __filename = fileURLToPath(import.meta.url);
