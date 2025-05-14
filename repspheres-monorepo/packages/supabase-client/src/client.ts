@@ -74,14 +74,18 @@ export const initializeSupabase = (
  * Gets the global Supabase client instance
  * Throws an error if the client has not been initialized
  * 
+ * @param environmentKey Optional environment key to get a specific client
  * @returns The global Supabase client instance
  */
-export const getSupabaseClient = (): SupabaseClient => {
+export const getSupabaseClient = (environmentKey?: string): SupabaseClient => {
   if (!globalSupabaseClient) {
     throw new Error(
       'Supabase client has not been initialized. Call initializeSupabase first.'
     );
   }
+  
+  // In the future, we could implement environment-specific clients
+  // For now, we just return the global client regardless of the environmentKey
   return globalSupabaseClient;
 };
 

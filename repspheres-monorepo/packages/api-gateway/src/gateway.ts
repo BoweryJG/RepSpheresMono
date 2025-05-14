@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiGatewayConfig, RequestOptions, ApiResponse } from './types';
+import { ApiGatewayConfig, RequestOptions, ApiResponse, CacheConfig } from './types';
 import { applyMiddleware } from './middleware';
+import { ResponseCache, createExponentialBackoff, shouldRetry, createConnectionMonitor, createDiagnostics } from './utils';
 
 /**
  * API Gateway class to handle all API requests
@@ -9,9 +10,24 @@ import { applyMiddleware } from './middleware';
 export class ApiGateway {
   private axiosInstance: AxiosInstance;
   private config: ApiGatewayConfig;
+  private cache: ResponseCache;
+  private connectionMonitor: ReturnType<typeof createConnectionMonitor>;
+  private diagnostics: ReturnType<typeof createDiagnostics>;
 
   constructor(config: ApiGatewayConfig) {
     this.config = config;
+    
+    // Initialize cache with default config if not provided
+    const cacheConfig: CacheConfig = {
+      enabled: true,
+      ttl: 60000, // 1 minute default TTL
+      maxSize: 100,
+      cacheNonGetRequests: false
+    };
+    
+    this.cache = new ResponseCache(cacheConfig);
+    this.connectionMonitor = createConnectionMonitor();
+    this.diagnostics = createDiagnostics();
     
     // Create axios instance with default config
     this.axiosInstance = axios.create({
@@ -26,6 +42,21 @@ export class ApiGateway {
     // Apply request interceptors
     this.axiosInstance.interceptors.request.use(
       (config) => {
+        // Check cache first for GET requests
+        if (config.method?.toUpperCase() === 'GET') {
+          const cachedResponse = this.cache.get(config);
+          if (cachedResponse) {
+            // Create a new resolved promise with the cached response
+            // This will be caught by the response interceptor
+            config.adapter = () => Promise.resolve(cachedResponse);
+          }
+        }
+        
+        // Record request for diagnostics
+        if (this.config.debug) {
+          this.diagnostics.recordRequest(config.url || '', config);
+        }
+        
         // Apply middleware to request
         if (this.config.middleware?.request && this.config.middleware.request.length > 0) {
           return this.config.middleware.request.reduce(
@@ -43,6 +74,12 @@ export class ApiGateway {
     // Apply response interceptors
     this.axiosInstance.interceptors.response.use(
       (response) => {
+        // Record successful connection
+        this.connectionMonitor.recordSuccess();
+        
+        // Cache the response if it's cacheable
+        this.cache.set(response.config, response);
+        
         // Apply middleware to response
         if (this.config.middleware?.response && this.config.middleware.response.length > 0) {
           return this.config.middleware.response.reduce(
@@ -53,20 +90,41 @@ export class ApiGateway {
         return response;
       },
       async (error) => {
-        // Handle errors with retry logic if configured
+        // Record error for diagnostics
+        if (this.config.debug && error.config?.url) {
+          this.diagnostics.recordError(error.config.url, error);
+        }
+        
+        // Record connection failure
+        this.connectionMonitor.recordFailure();
+        
+        // Handle errors with enhanced retry logic if configured
         if (this.config.retryConfig && error.config && !error.config.__isRetry) {
-          const { maxRetries, retryDelay, retryStatusCodes } = this.config.retryConfig;
+          const retryConfig = this.config.retryConfig;
+          const statusCode = error.response?.status;
+          
+          // Initialize retry count
+          error.config.__retryCount = (error.config.__retryCount || 0) + 1;
           
           if (
-            error.response &&
-            retryStatusCodes.includes(error.response.status) &&
-            error.config.__retryCount < maxRetries
+            error.config.__retryCount <= retryConfig.maxRetries &&
+            shouldRetry(statusCode, retryConfig)
           ) {
-            error.config.__retryCount = (error.config.__retryCount || 0) + 1;
             error.config.__isRetry = true;
             
-            // Wait for the specified delay
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            // Calculate delay with exponential backoff if enabled
+            const delay = createExponentialBackoff(
+              error.config.__retryCount - 1,
+              retryConfig
+            );
+            
+            // Wait for the calculated delay
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Log retry attempt if debug is enabled
+            if (this.config.debug) {
+              console.log(`Retrying request to ${error.config.url} (attempt ${error.config.__retryCount}/${retryConfig.maxRetries})`);
+            }
             
             // Retry the request
             return this.axiosInstance(error.config);
@@ -226,8 +284,9 @@ export class ApiGateway {
   /**
    * Update the API gateway configuration
    * @param config New configuration
+   * @param cacheConfig Optional cache configuration
    */
-  updateConfig(config: Partial<ApiGatewayConfig>): void {
+  updateConfig(config: Partial<ApiGatewayConfig>, cacheConfig?: Partial<CacheConfig>): void {
     this.config = { ...this.config, ...config };
     
     // Update axios instance with new config
@@ -240,5 +299,37 @@ export class ApiGateway {
         this.axiosInstance.defaults.headers.common[key] = value;
       });
     }
+    
+    // Update cache config if provided
+    if (cacheConfig) {
+      this.cache.updateConfig(cacheConfig);
+    }
+  }
+  
+  /**
+   * Get connection status information
+   * @returns Connection status object
+   */
+  getConnectionStatus() {
+    return {
+      isOnline: this.connectionMonitor.isOnline(),
+      timeSinceLastSuccess: this.connectionMonitor.getTimeSinceLastSuccess(),
+      failedRequestCount: this.connectionMonitor.getFailedRequestCount()
+    };
+  }
+  
+  /**
+   * Get diagnostic information
+   * @returns Diagnostic information object
+   */
+  getDiagnostics() {
+    return this.diagnostics.getDiagnostics();
+  }
+  
+  /**
+   * Clear the response cache
+   */
+  clearCache(): void {
+    this.cache.clear();
   }
 }

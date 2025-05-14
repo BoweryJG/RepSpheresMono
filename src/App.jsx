@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DashboardSupabase from './components/DashboardSupabase';
 import DashboardSupabaseUnified from './components/DashboardSupabaseUnified';
+import MarketInsightsIntegration from './components/MarketInsightsIntegration';
 import Login from './components/Login';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
@@ -164,6 +165,9 @@ function AppContent({ initializationError = false }) {
         
         {/* Dashboard Routes - Using Unified Supabase Service (MCP in dev, direct in prod) */}
         <Route path="/dashboard/*" element={<DashboardSupabaseUnified user={user} />} />
+        
+        {/* Market Insights Integration from Monorepo */}
+        <Route path="/market-insights" element={<MarketInsightsIntegration />} />
         
         {/* 404 Not Found */}
         <Route path="*" element={<NotFoundPage />} />

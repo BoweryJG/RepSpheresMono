@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Grid, Paper, CircularProgress, Divider } from '@mui/material';
+import { Container, Typography, Box, Grid, Paper, CircularProgress, Divider, Button } from '@mui/material';
 import { getFeaturedProcedures, getTrendingProcedures, getAllCategories } from '../services/procedureService';
 import FeaturedProcedures from '../components/procedures/FeaturedProcedures';
 import CategoriesList from '../components/procedures/CategoriesList';
 import SearchForm from '../components/procedures/SearchForm';
+import MarketInsightsAdapter from '../components/MarketInsightsAdapter';
 import { useNavigate } from 'react-router-dom';
 
 function HomePage() {
@@ -98,6 +99,13 @@ function HomePage() {
     );
   }
   
+  // Get Supabase credentials from environment variables
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  // State to control the visibility of the Market Insights preview
+  const [showMarketInsights, setShowMarketInsights] = useState(false);
+  
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Hero Section */}
@@ -141,6 +149,53 @@ function HomePage() {
           onSearch={handleSearch}
         />
       </Paper>
+      
+      {/* Market Insights Preview Section */}
+      {showMarketInsights && (
+        <Paper 
+          elevation={3}
+          sx={{ 
+            p: 3, 
+            mb: 6, 
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography 
+              variant="h5" 
+              component="h2" 
+              sx={{ 
+                fontWeight: 700,
+                color: 'white'
+              }}
+            >
+              Market Insights Preview
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="secondary"
+              onClick={() => setShowMarketInsights(false)}
+              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+            >
+              Hide Preview
+            </Button>
+          </Box>
+          
+          <Box sx={{ 
+            bgcolor: 'white', 
+            borderRadius: 2, 
+            height: '400px', 
+            overflow: 'auto',
+            p: 2
+          }}>
+            <MarketInsightsAdapter 
+              supabaseUrl={supabaseUrl}
+              supabaseKey={supabaseKey}
+            />
+          </Box>
+        </Paper>
+      )}
       
       {/* Main Content */}
       <Grid container spacing={4}>
@@ -198,10 +253,60 @@ function HomePage() {
               emerging opportunities.
             </Typography>
             
-            <Typography variant="body2">
+            <Typography variant="body2" paragraph>
               Our data is regularly updated to ensure you have access to the most current 
               market information for making informed business decisions.
             </Typography>
+            
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              {!showMarketInsights && (
+                <Button 
+                  variant="contained" 
+                  color="secondary"
+                  onClick={() => setShowMarketInsights(true)}
+                  sx={{ 
+                    background: 'linear-gradient(90deg, #7b1fa2, #ba68c8)',
+                    color: 'white',
+                    mb: 2,
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  Show Market Insights Preview
+                </Button>
+              )}
+              <a 
+                href="/dashboard" 
+                style={{ 
+                  textDecoration: 'none', 
+                  display: 'inline-block',
+                  background: 'linear-gradient(90deg, #1976d2, #42a5f5)',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                View Market Insights Dashboard
+              </a>
+              
+              <a 
+                href="/market-insights" 
+                style={{ 
+                  textDecoration: 'none', 
+                  display: 'inline-block',
+                  background: 'linear-gradient(90deg, #7b1fa2, #ba68c8)',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                Explore Full Market Insights
+              </a>
+            </Box>
           </Paper>
         </Grid>
       </Grid>

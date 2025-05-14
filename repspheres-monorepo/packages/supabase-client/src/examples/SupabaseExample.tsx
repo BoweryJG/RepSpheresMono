@@ -1,41 +1,110 @@
-import React, { useEffect, useState } from 'react';
-import { SupabaseProvider, useSupabase, withSupabase } from '..';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../types';
+import React, { useState, useEffect } from 'react';
+import { 
+  useSupabase, 
+  useSupabaseAuth, 
+  useSupabaseQuery, 
+  useSupabaseMutation,
+  useSupabaseRealtime,
+  withSupabase,
+  withSupabaseAuth,
+  type WithSupabaseProps,
+  type WithSupabaseAuthProps
+} from '../index';
 
-// Example component using the useSupabase hook
-const ProceduresList = () => {
-  const { supabase, isLoading, error } = useSupabase();
-  const [procedures, setProcedures] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// Example 1: Basic Supabase Provider Usage
+export const SupabaseProviderExample: React.FC = () => {
+  return (
+    <div>
+      <h2>Supabase Provider Example</h2>
+      <UserProfile />
+      <DataDisplay />
+    </div>
+  );
+};
 
-  useEffect(() => {
-    const fetchProcedures = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('aesthetic_procedures')
-          .select('*')
-          .limit(10);
-        
-        if (error) {
-          throw error;
-        }
-        
-        setProcedures(data || []);
-      } catch (err) {
-        console.error('Error fetching procedures:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+// Example 2: Using the useSupabase hook
+const UserProfile: React.FC = () => {
+  const { user, isLoading } = useSupabaseAuth();
 
-    if (!isLoading && !error) {
-      fetchProcedures();
-    }
-  }, [supabase, isLoading, error]);
+  if (isLoading) {
+    return <div>Loading user...</div>;
+  }
 
-  if (isLoading || loading) {
-    return <div>Loading procedures...</div>;
+  return (
+    <div>
+      <h3>User Profile</h3>
+      {user ? (
+        <div>
+          <p>Email: {user.email}</p>
+          <p>ID: {user.id}</p>
+          <LogoutButton />
+        </div>
+      ) : (
+        <LoginForm />
+      )}
+    </div>
+  );
+};
+
+// Example 3: Using the useSupabaseAuth hook
+const LoginForm: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { signInWithPassword, error, isLoading } = useSupabaseAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signInWithPassword(email, password);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="email">Email:</label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label htmlFor="password">Password:</label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      {error && <div style={{ color: 'red' }}>{error.message}</div>}
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Logging in...' : 'Log in'}
+      </button>
+    </form>
+  );
+};
+
+const LogoutButton: React.FC = () => {
+  const { signOut, isLoading } = useSupabaseAuth();
+
+  return (
+    <button onClick={() => signOut()} disabled={isLoading}>
+      {isLoading ? 'Logging out...' : 'Log out'}
+    </button>
+  );
+};
+
+// Example 4: Using the useSupabaseQuery hook
+const DataDisplay: React.FC = () => {
+  const { data, error, isLoading, refetch } = useSupabaseQuery(
+    (supabase) => supabase.from('procedures').select('*').limit(10)
+  );
+
+  if (isLoading) {
+    return <div>Loading data...</div>;
   }
 
   if (error) {
@@ -44,91 +113,199 @@ const ProceduresList = () => {
 
   return (
     <div>
-      <h2>Aesthetic Procedures</h2>
+      <h3>Procedures</h3>
+      <button onClick={() => refetch()}>Refresh</button>
       <ul>
-        {procedures.map((procedure) => (
-          <li key={procedure.id}>
-            {procedure.name} - {procedure.category}
-          </li>
+        {data?.map((item: any) => (
+          <li key={item.id}>{item.name}</li>
         ))}
       </ul>
     </div>
   );
 };
 
-// Example component using the withSupabase HOC
-interface CompanyListProps {
-  supabase: SupabaseClient<Database>;
+// Example 5: Using the useSupabaseMutation hook
+const CreateProcedureForm: React.FC = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  
+  const { mutate, isLoading, error } = useSupabaseMutation(
+    (supabase, variables) => 
+      supabase.from('procedures').insert(variables).select()
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await mutate({ name, description });
+    setName('');
+    setDescription('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h3>Add Procedure</h3>
+      <div>
+        <label htmlFor="name">Name:</label>
+        <input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label htmlFor="description">Description:</label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
+      </div>
+      {error && <div style={{ color: 'red' }}>{error.message}</div>}
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Adding...' : 'Add Procedure'}
+      </button>
+    </form>
+  );
+};
+
+// Example 6: Using the useSupabaseRealtime hook
+const RealtimeUpdates: React.FC = () => {
+  const { data, error } = useSupabaseRealtime('procedures', {
+    event: '*',
+    schema: 'public'
+  });
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return (
+    <div>
+      <h3>Realtime Procedures</h3>
+      <ul>
+        {data?.map((item: any) => (
+          <li key={item.id}>{item.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+// Example 7: Using the withSupabase HOC (Class Component)
+interface ProcedureListProps extends WithSupabaseProps {
+  limit?: number;
 }
 
-const CompanyListBase = ({ supabase }: CompanyListProps) => {
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+class ProcedureList extends React.Component<ProcedureListProps> {
+  state = {
+    procedures: [],
+    isLoading: true,
+    error: null
+  };
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .limit(10);
+  async componentDidMount() {
+    const { supabase } = this.props;
+    const { limit = 10 } = this.props;
+    
+    try {
+      const { data, error } = await supabase
+        .from('procedures')
+        .select('*')
+        .limit(limit);
         
-        if (error) {
-          throw error;
-        }
-        
-        setCompanies(data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch companies'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCompanies();
-  }, [supabase]);
-
-  if (loading) {
-    return <div>Loading companies...</div>;
+      if (error) throw error;
+      
+      this.setState({ 
+        procedures: data,
+        isLoading: false
+      });
+    } catch (error) {
+      this.setState({ 
+        error,
+        isLoading: false
+      });
+    }
   }
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
+  render() {
+    const { procedures, isLoading, error } = this.state;
+    
+    if (isLoading) return <div>Loading procedures...</div>;
+    if (error) return <div>Error: {(error as Error).message}</div>;
+    
+    return (
+      <div>
+        <h3>Procedures (Class Component)</h3>
+        <ul>
+          {procedures.map((procedure: any) => (
+            <li key={procedure.id}>{procedure.name}</li>
+          ))}
+        </ul>
+      </div>
+    );
   }
+}
 
+// Wrap the class component with the withSupabase HOC
+const ProcedureListWithSupabase = withSupabase(ProcedureList);
+
+// Example 8: Using the withSupabaseAuth HOC (Class Component)
+interface AuthProfileProps extends WithSupabaseAuthProps {}
+
+class AuthProfile extends React.Component<AuthProfileProps> {
+  handleLogout = async () => {
+    await this.props.signOut();
+  };
+
+  render() {
+    const { user, isLoading } = this.props;
+    
+    if (isLoading) return <div>Loading user profile...</div>;
+    
+    return (
+      <div>
+        <h3>User Profile (Class Component)</h3>
+        {user ? (
+          <div>
+            <p>Email: {user.email}</p>
+            <p>ID: {user.id}</p>
+            <button onClick={this.handleLogout}>Log out</button>
+          </div>
+        ) : (
+          <p>Not logged in</p>
+        )}
+      </div>
+    );
+  }
+}
+
+// Wrap the class component with the withSupabaseAuth HOC
+const AuthProfileWithSupabase = withSupabaseAuth(AuthProfile);
+
+// Example 9: Complete example with all components
+export const CompleteExample: React.FC = () => {
   return (
     <div>
-      <h2>Companies</h2>
-      <ul>
-        {companies.map((company) => (
-          <li key={company.id}>
-            {company.name} - {company.industry}
-          </li>
-        ))}
-      </ul>
+      <h1>Supabase Client Example</h1>
+      
+      <UserProfile />
+      
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <div style={{ flex: 1 }}>
+          <DataDisplay />
+          <CreateProcedureForm />
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <RealtimeUpdates />
+          <ProcedureListWithSupabase limit={5} />
+          <AuthProfileWithSupabase />
+        </div>
+      </div>
     </div>
   );
 };
 
-// Apply the HOC
-const CompanyList = withSupabase(CompanyListBase);
-
-// Main example component
-export const SupabaseExample = () => {
-  // Replace with your actual Supabase credentials
-  const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-  const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-
-  return (
-    <SupabaseProvider supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
-      <div className="supabase-example">
-        <h1>Supabase Client Example</h1>
-        <ProceduresList />
-        <CompanyList />
-      </div>
-    </SupabaseProvider>
-  );
-};
-
-export default SupabaseExample;
+export default CompleteExample;

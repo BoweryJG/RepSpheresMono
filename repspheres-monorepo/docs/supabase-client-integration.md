@@ -1,73 +1,46 @@
 # Supabase Client Integration Guide
 
-This guide provides detailed information on how to use the shared Supabase client package (`@repo/supabase-client`) in the RepSpheres monorepo.
+This guide provides detailed instructions for integrating the Supabase client package into applications within the RepSpheres monorepo.
 
 ## Overview
 
-The `@repo/supabase-client` package provides a unified way to interact with Supabase across all applications in the monorepo. It offers:
+The `@repo/supabase-client` package provides a comprehensive set of tools for interacting with Supabase in React applications. It includes:
 
-1. A consistent client configuration
-2. React integration through context and hooks
-3. TypeScript support with shared database types
-4. Higher-order components for class components
+- Type-safe client creation
+- React hooks for data fetching and mutations
+- Authentication utilities
+- Realtime subscriptions
+- Storage operations
+- Higher-order components for class components
 
-## Installation
+## Getting Started
 
-The package is already included in the monorepo, so you don't need to install it separately. Just make sure your app's `package.json` includes it as a dependency:
+### Installation
 
-```json
-{
-  "dependencies": {
-    "@repo/supabase-client": "*"
-  }
-}
+The package is available as an internal dependency within the monorepo:
+
+```bash
+# From your app directory
+npm install @repo/supabase-client
 ```
 
-## Basic Usage
+### Basic Setup
 
-### Direct Client Usage
-
-For non-React code or services, you can use the `createSupabaseClient` function:
-
-```typescript
-import { createSupabaseClient } from '@repo/supabase-client';
-
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-
-const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
-
-// Now use the client
-const fetchData = async () => {
-  const { data, error } = await supabase
-    .from('table_name')
-    .select('*');
-  
-  if (error) {
-    console.error('Error fetching data:', error);
-    return null;
-  }
-  
-  return data;
-};
-```
-
-### React Integration
-
-For React components, wrap your application with the `SupabaseProvider`:
+To use the Supabase client in your application, you need to wrap your app with the `SupabaseProvider`:
 
 ```tsx
 // src/App.tsx
 import React from 'react';
 import { SupabaseProvider } from '@repo/supabase-client';
 
-const App = () => {
-  const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-  const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-  
+const App: React.FC = () => {
+  // Get these from environment variables
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
   return (
     <SupabaseProvider supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
-      {/* Your app components */}
+      <YourApp />
     </SupabaseProvider>
   );
 };
@@ -75,428 +48,874 @@ const App = () => {
 export default App;
 ```
 
-Then use the `useSupabase` hook in your components:
+## Authentication
+
+### User Authentication
+
+The package provides a `useSupabaseAuth` hook for handling user authentication:
 
 ```tsx
-// src/components/DataComponent.tsx
-import React, { useEffect, useState } from 'react';
-import { useSupabase } from '@repo/supabase-client';
+import React, { useState } from 'react';
+import { useSupabaseAuth } from '@repo/supabase-client';
 
-const DataComponent = () => {
-  const { supabase, isLoading, error } = useSupabase();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isLoading && !error) {
-        const { data: result, error: dataError } = await supabase
-          .from('your_table')
-          .select('*');
-        
-        if (dataError) {
-          console.error('Error fetching data:', dataError);
-        } else {
-          setData(result || []);
-        }
-        
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [supabase, isLoading, error]);
-  
-  if (isLoading || loading) {
-    return <div>Loading...</div>;
-  }
-  
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-  
-  return (
-    <div>
-      {/* Render your data */}
-      {data.map(item => (
-        <div key={item.id}>{item.name}</div>
-      ))}
-    </div>
-  );
-};
+const LoginComponent: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { signInWithPassword, signUp, signOut, user, isLoading, error } = useSupabaseAuth();
 
-export default DataComponent;
-```
-
-### For Class Components
-
-If you're using class components, you can use the `withSupabase` higher-order component:
-
-```tsx
-import React, { Component } from 'react';
-import { withSupabase } from '@repo/supabase-client';
-import type { SupabaseClient } from '@repo/supabase-client';
-import type { Database } from '@repo/supabase-client';
-
-interface Props {
-  supabase: SupabaseClient<Database>;
-}
-
-interface State {
-  data: any[];
-  loading: boolean;
-  error: Error | null;
-}
-
-class DataComponentClass extends Component<Props, State> {
-  state: State = {
-    data: [],
-    loading: true,
-    error: null
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signInWithPassword(email, password);
   };
-  
-  async componentDidMount() {
-    try {
-      const { data, error } = await this.props.supabase
-        .from('your_table')
-        .select('*');
-      
-      if (error) {
-        throw error;
-      }
-      
-      this.setState({
-        data: data || [],
-        loading: false
-      });
-    } catch (error) {
-      this.setState({
-        error: error instanceof Error ? error : new Error('Unknown error'),
-        loading: false
-      });
-    }
-  }
-  
-  render() {
-    const { data, loading, error } = this.state;
-    
-    if (loading) {
-      return <div>Loading...</div>;
-    }
-    
-    if (error) {
-      return <div>Error: {error.message}</div>;
-    }
-    
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signUp(email, password);
+  };
+
+  if (user) {
     return (
       <div>
-        {data.map(item => (
-          <div key={item.id}>{item.name}</div>
-        ))}
+        <p>Welcome, {user.email}</p>
+        <button onClick={() => signOut()}>Sign Out</button>
       </div>
     );
   }
-}
 
-// Wrap the component with the HOC
-export default withSupabase(DataComponentClass);
-```
-
-## TypeScript Integration
-
-The package includes TypeScript types for the database schema. Import and use them to get type safety:
-
-```typescript
-import type { Database } from '@repo/supabase-client';
-
-// Type-safe table row
-type AestheticProcedure = Database['public']['Tables']['aesthetic_procedures']['Row'];
-
-// Type-safe function
-const getProcedure = async (id: number): Promise<AestheticProcedure | null> => {
-  const { data, error } = await supabase
-    .from('aesthetic_procedures')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
-    console.error('Error fetching procedure:', error);
-    return null;
-  }
-  
-  return data;
+  return (
+    <form onSubmit={handleLogin}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Loading...' : 'Login'}
+      </button>
+      <button type="button" onClick={handleSignUp} disabled={isLoading}>
+        Sign Up
+      </button>
+      {error && <p>{error.message}</p>}
+    </form>
+  );
 };
 ```
 
-## Customizing the Supabase Client
+### OAuth Authentication
 
-You can customize the Supabase client by passing options to the `createSupabaseClient` function or the `SupabaseProvider`:
-
-```typescript
-// Direct client with options
-const supabase = createSupabaseClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  },
-  global: {
-    headers: {
-      'x-custom-header': 'custom-value'
-    }
-  }
-});
-
-// Or with the provider
-<SupabaseProvider 
-  supabaseUrl={supabaseUrl} 
-  supabaseKey={supabaseKey}
-  options={{
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }}
->
-  {/* Your app components */}
-</SupabaseProvider>
-```
-
-## Authentication
-
-The Supabase client includes authentication capabilities. Here's how to use them:
-
-```typescript
-// Sign up
-const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
-  
-  return { data, error };
-};
-
-// Sign in
-const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-  
-  return { data, error };
-};
-
-// Sign out
-const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
-};
-
-// Get current user
-const getCurrentUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-  return { user: data.user, error };
-};
-
-// Get session
-const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  return { session: data.session, error };
-};
-```
-
-## Real-time Subscriptions
-
-You can use Supabase's real-time capabilities:
+The package also supports OAuth authentication:
 
 ```tsx
-import React, { useEffect, useState } from 'react';
-import { useSupabase } from '@repo/supabase-client';
+import React from 'react';
+import { useSupabaseAuth } from '@repo/supabase-client';
 
-const RealtimeComponent = () => {
-  const { supabase } = useSupabase();
-  const [messages, setMessages] = useState<any[]>([]);
-  
-  useEffect(() => {
-    // Initial fetch
-    const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      setMessages(data || []);
-    };
-    
-    fetchMessages();
-    
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('public:messages')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages' 
-        }, 
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setMessages(prev => [payload.new, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setMessages(prev => 
-              prev.map(message => 
-                message.id === payload.new.id ? payload.new : message
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setMessages(prev => 
-              prev.filter(message => message.id !== payload.old.id)
-            );
-          }
-        }
-      )
-      .subscribe();
-    
-    // Clean up subscription
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [supabase]);
-  
+const OAuthLoginComponent: React.FC = () => {
+  const { signInWithOAuth, isLoading } = useSupabaseAuth();
+
+  const handleGoogleLogin = async () => {
+    await signInWithOAuth('google');
+  };
+
+  const handleGithubLogin = async () => {
+    await signInWithOAuth('github');
+  };
+
   return (
     <div>
-      <h2>Real-time Messages</h2>
+      <button onClick={handleGoogleLogin} disabled={isLoading}>
+        Login with Google
+      </button>
+      <button onClick={handleGithubLogin} disabled={isLoading}>
+        Login with GitHub
+      </button>
+    </div>
+  );
+};
+```
+
+### Password Reset
+
+```tsx
+import React, { useState } from 'react';
+import { useSupabaseAuth } from '@repo/supabase-client';
+
+const PasswordResetComponent: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const { resetPassword, isLoading, error } = useSupabaseAuth();
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await resetPassword(email);
+  };
+
+  return (
+    <form onSubmit={handleResetPassword}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Sending...' : 'Reset Password'}
+      </button>
+      {error && <p>{error.message}</p>}
+    </form>
+  );
+};
+```
+
+## Data Fetching
+
+### Basic Queries
+
+The `useSupabaseQuery` hook provides a simple way to fetch data from Supabase:
+
+```tsx
+import React from 'react';
+import { useSupabaseQuery } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const ProceduresList: React.FC = () => {
+  const { data, isLoading, error, refetch } = useSupabaseQuery<Procedure[]>(
+    (supabase) => supabase.from('procedures').select('*')
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <button onClick={() => refetch()}>Refresh</button>
       <ul>
-        {messages.map(message => (
-          <li key={message.id}>{message.content}</li>
+        {data?.map((procedure) => (
+          <li key={procedure.id}>{procedure.name}</li>
         ))}
       </ul>
     </div>
   );
 };
-
-export default RealtimeComponent;
 ```
 
-## Storage
+### Parameterized Queries
 
-You can use Supabase Storage for file uploads and downloads:
+You can pass dependencies to the `useSupabaseQuery` hook to re-fetch data when they change:
 
-```typescript
-// Upload file
-const uploadFile = async (bucket: string, path: string, file: File) => {
-  const { data, error } = await supabase
-    .storage
-    .from(bucket)
-    .upload(path, file);
+```tsx
+import React, { useState } from 'react';
+import { useSupabaseQuery } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const FilteredProceduresList: React.FC = () => {
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   
-  return { data, error };
-};
-
-// Download file
-const downloadFile = (bucket: string, path: string) => {
-  const { data } = supabase
-    .storage
-    .from(bucket)
-    .getPublicUrl(path);
-  
-  return data.publicUrl;
-};
-
-// List files
-const listFiles = async (bucket: string, path: string) => {
-  const { data, error } = await supabase
-    .storage
-    .from(bucket)
-    .list(path);
-  
-  return { data, error };
-};
-
-// Delete file
-const deleteFile = async (bucket: string, path: string) => {
-  const { error } = await supabase
-    .storage
-    .from(bucket)
-    .remove([path]);
-  
-  return { error };
-};
-```
-
-## Error Handling
-
-The Supabase client returns errors in a consistent format. Here's how to handle them:
-
-```typescript
-const fetchData = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('your_table')
-      .select('*');
-    
-    if (error) {
-      // Handle Supabase error
-      console.error('Supabase error:', error.message);
+  const { data, isLoading, error } = useSupabaseQuery<Procedure[]>(
+    (supabase) => {
+      let query = supabase.from('procedures').select('*');
       
-      // You can check error codes
-      if (error.code === 'PGRST116') {
-        console.error('Foreign key violation');
+      if (categoryId !== null) {
+        query = query.eq('category_id', categoryId);
       }
       
-      throw error;
+      return query;
+    },
+    [categoryId] // Re-fetch when categoryId changes
+  );
+
+  // Component rendering...
+};
+```
+
+### Data Mutations
+
+The `useSupabaseMutation` hook provides a way to modify data:
+
+```tsx
+import React, { useState } from 'react';
+import { useSupabaseMutation } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const AddProcedureForm: React.FC = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  
+  const { mutate, isLoading, error } = useSupabaseMutation<Procedure>(
+    (supabase, variables) => 
+      supabase.from('procedures').insert(variables).select().single()
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    await mutate({
+      name,
+      description,
+      category_id: 1 // Example category ID
+    });
+    
+    // Reset form
+    setName('');
+    setDescription('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+      />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Description"
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Adding...' : 'Add Procedure'}
+      </button>
+      {error && <p>{error.message}</p>}
+    </form>
+  );
+};
+```
+
+## Realtime Subscriptions
+
+The `useSupabaseRealtime` hook provides a way to subscribe to realtime changes:
+
+```tsx
+import React from 'react';
+import { useSupabaseRealtime } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const RealtimeProceduresList: React.FC = () => {
+  const { data, error } = useSupabaseRealtime<Procedure>('procedures', {
+    event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+    schema: 'public'
+  });
+
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <h2>Realtime Procedures</h2>
+      <ul>
+        {data?.map((procedure) => (
+          <li key={procedure.id}>{procedure.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+```
+
+## Storage Operations
+
+The `useSupabaseStorage` hook provides a way to interact with Supabase Storage:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { useSupabaseStorage } from '@repo/supabase-client';
+
+const FileUploadComponent: React.FC = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const [fileList, setFileList] = useState<any[]>([]);
+  
+  const { 
+    uploadFile, 
+    downloadFile, 
+    listFiles, 
+    getPublicUrl, 
+    removeFile, 
+    isLoading, 
+    error 
+  } = useSupabaseStorage('images');
+
+  // Load files on component mount
+  useEffect(() => {
+    const loadFiles = async () => {
+      const files = await listFiles();
+      setFileList(files || []);
+    };
+    
+    loadFiles();
+  }, [listFiles]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    
+    await uploadFile(`uploads/${file.name}`, file);
+    const files = await listFiles();
+    setFileList(files || []);
+    setFile(null);
+  };
+
+  const handleDelete = async (path: string) => {
+    await removeFile(path);
+    const files = await listFiles();
+    setFileList(files || []);
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload} disabled={!file || isLoading}>
+        {isLoading ? 'Uploading...' : 'Upload'}
+      </button>
+      
+      {error && <p>{error.message}</p>}
+      
+      <h3>Files</h3>
+      <ul>
+        {fileList.map((fileItem) => (
+          <li key={fileItem.name}>
+            {fileItem.name}
+            <a 
+              href={getPublicUrl(`uploads/${fileItem.name}`)} 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              View
+            </a>
+            <button onClick={() => handleDelete(`uploads/${fileItem.name}`)}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+```
+
+## Pagination
+
+The `useSupabasePagination` hook provides a way to paginate through data:
+
+```tsx
+import React from 'react';
+import { useSupabasePagination } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const PaginatedProceduresList: React.FC = () => {
+  const { 
+    data, 
+    page, 
+    totalPages, 
+    isLoading, 
+    error, 
+    goToPage, 
+    nextPage, 
+    previousPage 
+  } = useSupabasePagination<Procedure>(
+    async (supabase, page, pageSize) => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error, count } = await supabase
+        .from('procedures')
+        .select('*', { count: 'exact' })
+        .range(from, to);
+        
+      return { data, error, count };
+    },
+    { pageSize: 10 }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <ul>
+        {data?.map((procedure) => (
+          <li key={procedure.id}>{procedure.name}</li>
+        ))}
+      </ul>
+      
+      <div>
+        <button onClick={previousPage} disabled={page === 1}>
+          Previous
+        </button>
+        <span>Page {page} of {totalPages}</span>
+        <button onClick={nextPage} disabled={page === totalPages}>
+          Next
+        </button>
+      </div>
+      
+      <div>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+          <button
+            key={pageNum}
+            onClick={() => goToPage(pageNum)}
+            disabled={pageNum === page}
+          >
+            {pageNum}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+## Infinite Scrolling
+
+The `useSupabaseInfiniteQuery` hook provides a way to implement infinite scrolling:
+
+```tsx
+import React, { useEffect, useRef } from 'react';
+import { useSupabaseInfiniteQuery } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+const InfiniteScrollProceduresList: React.FC = () => {
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    hasMore, 
+    fetchNextPage 
+  } = useSupabaseInfiniteQuery<Procedure>(
+    async (supabase, page, pageSize) => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error } = await supabase
+        .from('procedures')
+        .select('*')
+        .range(from, to);
+        
+      return { data, error };
+    },
+    { pageSize: 10 }
+  );
+
+  // Intersection Observer for infinite scrolling
+  const observerTarget = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 1.0 }
+    );
+    
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
     
-    return data;
-  } catch (err) {
-    // Handle other errors
-    console.error('Unexpected error:', err);
-    throw err;
-  }
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [fetchNextPage, hasMore, isLoading]);
+
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <ul>
+        {data?.map((procedure) => (
+          <li key={procedure.id}>{procedure.name}</li>
+        ))}
+      </ul>
+      
+      {isLoading && <div>Loading more...</div>}
+      
+      {/* Intersection observer target */}
+      {hasMore && <div ref={observerTarget} style={{ height: '10px' }}></div>}
+    </div>
+  );
 };
+```
+
+## Class Component Support
+
+For class components, the package provides higher-order components (HOCs):
+
+### withSupabase HOC
+
+```tsx
+import React from 'react';
+import { withSupabase, WithSupabaseProps } from '@repo/supabase-client';
+import { Procedure } from '../types';
+
+interface ProceduresListProps extends WithSupabaseProps {
+  categoryId?: number;
+}
+
+class ProceduresList extends React.Component<ProceduresListProps> {
+  state = {
+    procedures: [] as Procedure[],
+    loading: true,
+    error: null as Error | null
+  };
+
+  async componentDidMount() {
+    await this.fetchProcedures();
+  }
+
+  async componentDidUpdate(prevProps: ProceduresListProps) {
+    if (prevProps.categoryId !== this.props.categoryId) {
+      await this.fetchProcedures();
+    }
+  }
+
+  async fetchProcedures() {
+    const { supabase, categoryId } = this.props;
+    
+    try {
+      this.setState({ loading: true });
+      
+      let query = supabase.from('procedures').select('*');
+      
+      if (categoryId) {
+        query = query.eq('category_id', categoryId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      this.setState({
+        procedures: data,
+        loading: false,
+        error: null
+      });
+    } catch (error) {
+      this.setState({
+        loading: false,
+        error: error as Error
+      });
+    }
+  }
+
+  render() {
+    const { procedures, loading, error } = this.state;
+    
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error.message}</div>;
+    
+    return (
+      <ul>
+        {procedures.map((procedure) => (
+          <li key={procedure.id}>{procedure.name}</li>
+        ))}
+      </ul>
+    );
+  }
+}
+
+// Wrap with HOC
+export default withSupabase(ProceduresList);
+```
+
+### withSupabaseAuth HOC
+
+```tsx
+import React from 'react';
+import { withSupabaseAuth, WithSupabaseAuthProps } from '@repo/supabase-client';
+
+class AuthComponent extends React.Component<WithSupabaseAuthProps> {
+  state = {
+    email: '',
+    password: ''
+  };
+
+  handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ email: e.target.value });
+  };
+
+  handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ password: e.target.value });
+  };
+
+  handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { email, password } = this.state;
+    await this.props.signInWithPassword(email, password);
+  };
+
+  handleSignOut = async () => {
+    await this.props.signOut();
+  };
+
+  render() {
+    const { user, isLoading, error } = this.props;
+    const { email, password } = this.state;
+    
+    if (isLoading) return <div>Loading...</div>;
+    
+    if (user) {
+      return (
+        <div>
+          <p>Welcome, {user.email}</p>
+          <button onClick={this.handleSignOut}>Sign Out</button>
+        </div>
+      );
+    }
+    
+    return (
+      <form onSubmit={this.handleLogin}>
+        <input
+          type="email"
+          value={email}
+          onChange={this.handleEmailChange}
+          placeholder="Email"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={this.handlePasswordChange}
+          placeholder="Password"
+        />
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Loading...' : 'Login'}
+        </button>
+        {error && <p>{error.message}</p>}
+      </form>
+    );
+  }
+}
+
+// Wrap with HOC
+export default withSupabaseAuth(AuthComponent);
+```
+
+## Advanced Usage
+
+### Direct Client Access
+
+In some cases, you may need direct access to the Supabase client:
+
+```tsx
+import React from 'react';
+import { useSupabase } from '@repo/supabase-client';
+
+const DirectClientComponent: React.FC = () => {
+  const { supabase } = useSupabase();
+  
+  const handleCustomQuery = async () => {
+    const { data, error } = await supabase
+      .from('procedures')
+      .select('*')
+      .order('name', { ascending: true })
+      .limit(5);
+      
+    // Process data...
+  };
+  
+  return (
+    <button onClick={handleCustomQuery}>
+      Run Custom Query
+    </button>
+  );
+};
+```
+
+### Combining Hooks
+
+You can combine multiple hooks for more complex use cases:
+
+```tsx
+import React, { useState } from 'react';
+import { 
+  useSupabaseQuery, 
+  useSupabaseMutation, 
+  useSupabaseAuth 
+} from '@repo/supabase-client';
+import { Procedure, Category } from '../types';
+
+const ProcedureManager: React.FC = () => {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const { user } = useSupabaseAuth();
+  
+  // Fetch categories
+  const { 
+    data: categories 
+  } = useSupabaseQuery<Category[]>(
+    (supabase) => supabase.from('categories').select('*')
+  );
+  
+  // Fetch procedures based on selected category
+  const { 
+    data: procedures, 
+    refetch: refetchProcedures 
+  } = useSupabaseQuery<Procedure[]>(
+    (supabase) => {
+      let query = supabase.from('procedures').select('*');
+      
+      if (selectedCategoryId !== null) {
+        query = query.eq('category_id', selectedCategoryId);
+      }
+      
+      return query;
+    },
+    [selectedCategoryId]
+  );
+  
+  // Mutation for adding a procedure
+  const { 
+    mutate: addProcedure 
+  } = useSupabaseMutation<Procedure>(
+    (supabase, variables) => 
+      supabase.from('procedures')
+        .insert({ ...variables, created_by: user?.id })
+        .select()
+        .single()
+  );
+  
+  // Mutation for deleting a procedure
+  const { 
+    mutate: deleteProcedure 
+  } = useSupabaseMutation<{ id: number }>(
+    (supabase, variables) => 
+      supabase.from('procedures')
+        .delete()
+        .eq('id', variables.id)
+  );
+  
+  const handleAddProcedure = async (procedureData: Partial<Procedure>) => {
+    await addProcedure(procedureData);
+    refetchProcedures();
+  };
+  
+  const handleDeleteProcedure = async (id: number) => {
+    await deleteProcedure({ id });
+    refetchProcedures();
+  };
+  
+  // Component rendering...
+};
+```
+
+## TypeScript Integration
+
+The package is fully typed, providing type safety for all operations:
+
+```tsx
+// Define your database schema types
+export interface Procedure {
+  id: number;
+  name: string;
+  description: string;
+  category_id: number;
+  average_cost: number;
+  recovery_time: string;
+  popularity_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Use the types with the hooks
+const { data: procedures } = useSupabaseQuery<Procedure[]>(
+  (supabase) => supabase.from('procedures').select('*')
+);
 ```
 
 ## Best Practices
 
-1. **Environment Variables**: Always store Supabase credentials in environment variables, never hardcode them.
+### 1. Centralize Client Configuration
 
-2. **Error Handling**: Always check for errors in Supabase responses.
+Create a central configuration file for your Supabase client:
 
-3. **Type Safety**: Use the provided TypeScript types for better type safety.
+```tsx
+// src/services/supabase-config.ts
+import { SupabaseProvider } from '@repo/supabase-client';
 
-4. **Connection Management**: Use the `SupabaseProvider` at the top level of your React application to ensure a single client instance.
+export const supabaseConfig = {
+  url: import.meta.env.VITE_SUPABASE_URL,
+  key: import.meta.env.VITE_SUPABASE_ANON_KEY
+};
 
-5. **Clean Up Subscriptions**: Always clean up real-time subscriptions when components unmount.
+export const SupabaseProviderWithConfig: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <SupabaseProvider 
+      supabaseUrl={supabaseConfig.url} 
+      supabaseKey={supabaseConfig.key}
+    >
+      {children}
+    </SupabaseProvider>
+  );
+};
+```
 
-6. **RLS Policies**: Ensure your Supabase tables have proper Row Level Security (RLS) policies.
+### 2. Create Custom Hooks
 
-7. **Batching Operations**: Use transactions for operations that need to be atomic.
+Create custom hooks for common operations:
 
-## Troubleshooting
+```tsx
+// src/hooks/useProcedures.ts
+import { useSupabaseQuery, useSupabaseMutation } from '@repo/supabase-client';
+import { Procedure } from '../types';
 
-### Common Issues
-
-1. **"useSupabase must be used within a SupabaseProvider"**
-   - Make sure your component is wrapped with `SupabaseProvider`
-   - Check that the provider is not conditionally rendered
-
-2. **Authentication Issues**
-   - Check that your Supabase URL and key are correct
-   - Verify that the user has the necessary permissions
-
-3. **TypeScript Errors**
-   - Ensure you're importing types correctly
-   - Check that your database schema types are up to date
-
-4. **Real-time Subscription Not Working**
-   - Verify that real-time is enabled for your Supabase project
-   - Check that you're subscribing to the correct channel and table
-
-## Resources
-
-- [Supabase Documentation](https://supabase.io/docs)
-- [Supabase JavaScript Client](https://supabase.io/docs/reference/javascript/introduction)
-- [Supabase Auth Documentation](https://supabase.io/docs/guides/auth)
-- [Supabase Storage Documentation](https://supabase.io/docs/guides/storage)
-- [Supabase Real-time Documentation](https://supabase.io/docs/guides/realtime)
+export function useProcedures(categoryId?: number) {
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useSupabaseQuery<Procedure[]>(
+    (supabase) => {
+      let query = supabase.from('procedures').select('*');
+      
+      if (categoryId) {
+        query = query.eq('category_id', categoryId);
+      }
+      
+      return query;
+    },
+    [categoryId]
+  );
+  
+  const { 
+    mutate: addProcedure, 
+    isLoading: isAdding 
+  } = useSupabaseMutation<Procedure>(
+    (supabase, variables) => 
+      supabase.from('procedures').insert(variables).select().single()
+  );
+  
+  const { 
+    mutate: updateProcedure, 
+    isLoading: isUpdating 
+  } = useSupabaseMutation<Procedure>(
+    (supabase, variables) => 
+      supabase.from('procedures')
+        .update(variables)
+        .eq('id', variables.id)
+        .select()
+        .single()
+  );
+  
+  const { 
+    mutate: deleteProcedure, 
+    isLoading: isDeleting 
+  } = useSupabaseMutation<{ id: number }>(
+    (supabase, variables) => 
+      supabase.from('procedures').delete().eq('id', variables.

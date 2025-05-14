@@ -1,4 +1,16 @@
-import { SupabaseClient as OriginalSupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient as OriginalSupabaseClient, Provider as OriginalProvider, Session, User } from '@supabase/supabase-js';
+
+// Re-export Provider type
+export type Provider = OriginalProvider;
+
+// User attributes for update operations
+export interface UserAttributes {
+  email?: string;
+  password?: string;
+  email_confirm?: boolean;
+  phone?: string;
+  data?: Record<string, any>;
+}
 
 // Define the database schema types
 export type Tables = {
@@ -252,4 +264,13 @@ export interface SupabaseError {
   message: string;
   status?: number;
   code?: string;
+}
+
+// Auth response type
+export interface AuthResponse {
+  data: {
+    user: User | null;
+    session: Session | null;
+  };
+  error: SupabaseError | null;
 }

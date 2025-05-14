@@ -113,6 +113,61 @@ export interface RetryConfig {
    * HTTP status codes that should trigger a retry
    */
   retryStatusCodes: number[];
+
+  /**
+   * Maximum delay for retries in milliseconds (used with exponential backoff)
+   */
+  maxRetryDelay?: number;
+
+  /**
+   * Whether to use exponential backoff for retries
+   */
+  exponentialBackoff?: boolean;
+
+  /**
+   * Whether to retry on network errors
+   */
+  retryNetworkErrors?: boolean;
+}
+
+/**
+ * Cache item interface
+ */
+export interface CacheItem {
+  /**
+   * Cached response
+   */
+  response: AxiosResponse;
+  
+  /**
+   * Timestamp when the item was cached
+   */
+  timestamp: number;
+}
+
+/**
+ * Cache configuration interface
+ */
+export interface CacheConfig {
+  /**
+   * Whether caching is enabled
+   */
+  enabled: boolean;
+  
+  /**
+   * Time to live in milliseconds
+   */
+  ttl: number;
+  
+  /**
+   * Maximum cache size
+   */
+  maxSize?: number;
+  
+  /**
+   * Whether to cache non-GET requests
+   */
+  cacheNonGetRequests?: boolean;
 }
 
 /**
