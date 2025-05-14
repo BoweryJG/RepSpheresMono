@@ -8,14 +8,13 @@ import MarketInsightsAdapter from './MarketInsightsAdapter';
  * 
  * This component integrates the Market Insights dashboard from the monorepo
  * into the main application.
+ * 
+ * Now using the enhanced MarketInsightsAdapter that leverages the supabaseAdmin client
+ * with service role permissions for better data access.
  */
 const MarketInsightsIntegration = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Get Supabase credentials from environment variables
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   useEffect(() => {
     // Simulate loading time for the integration
@@ -54,11 +53,8 @@ const MarketInsightsIntegration = () => {
         p: 3,
         backgroundColor: '#fff'
       }}>
-        {/* Use the adapter component instead */}
-        <MarketInsightsAdapter 
-          supabaseUrl={supabaseUrl}
-          supabaseKey={supabaseKey}
-        />
+        {/* Use the adapter component with built-in supabaseAdmin client */}
+        <MarketInsightsAdapter />
       </Box>
     </Box>
   );

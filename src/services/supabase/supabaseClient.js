@@ -56,12 +56,14 @@ const getEnv = (key, defaultValue = '') => {
 // No default values provided to ensure we don't expose keys in code
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+const supabaseServiceKey = getEnv('SUPABASE_SERVICE_KEY');
 
 // For Node.js scripts, log more detailed environment information
 if (typeof process !== 'undefined' && process.env) {
   console.log('[Supabase] Environment check:');
   console.log(`  - VITE_SUPABASE_URL: ${supabaseUrl ? '✅ Found' : '❌ Missing'}`);
   console.log(`  - VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅ Found' : '❌ Missing'}`);
+  console.log(`  - SUPABASE_SERVICE_KEY: ${supabaseServiceKey ? '✅ Found' : '❌ Missing'}`);
 }
 
 // Validate configuration
@@ -101,10 +103,10 @@ String.prototype.safeIndexOf = function(searchValue, fromIndex) {
 };
 
 // Create a safe wrapper around the Supabase client
-const createSafeSupabaseClient = () => {
+const createSafeSupabaseClient = (apiKey = supabaseAnonKey) => {
   try {
     // Create the actual Supabase client
-    const client = createClient(supabaseUrl, supabaseAnonKey, {
+    const client = createClient(supabaseUrl, apiKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
@@ -181,8 +183,9 @@ const createSafeSupabaseClient = () => {
   }
 };
 
-// Create the safe Supabase client
+// Create the safe Supabase clients - one with anon key and one with service key
 export const supabase = createSafeSupabaseClient();
+export const supabaseAdmin = supabaseServiceKey ? createSafeSupabaseClient(supabaseServiceKey) : supabase;
 
 // Check connection and log initialization status
 try {
@@ -191,6 +194,13 @@ try {
   });
 } catch (e) {
   console.error('[Supabase] Error setting up auth state change listener:', e);
+}
+
+// Log service role client status
+if (supabaseServiceKey) {
+  console.log('[Supabase] Service role client initialized');
+} else {
+  console.warn('[Supabase] Service role key not found, falling back to anon key for admin operations');
 }
 
 // Perform a simple test query to check connectivity
@@ -222,6 +232,7 @@ if (typeof window !== 'undefined') {
 
 // Export for backward compatibility
 export const supabaseClient = supabase;
+export const supabaseAdminClient = supabaseAdmin;
 
 // Log connection status
 console.log('[Supabase] Client initialized');

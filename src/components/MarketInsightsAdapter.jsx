@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../services/supabase/supabaseClient';
 import './MarketInsightsAdapter.css';
 
 /**
@@ -9,10 +9,13 @@ import './MarketInsightsAdapter.css';
  * This component serves as an adapter for the Market Insights dashboard,
  * providing a simplified version that works with the main application without
  * requiring the monorepo's package aliases.
+ * 
+ * Now using the supabaseAdmin client with service role permissions for better
+ * data access capabilities.
  */
-const MarketInsightsAdapter = ({ supabaseUrl, supabaseKey }) => {
-  // Create a Supabase client
-  const supabase = createClient(supabaseUrl, supabaseKey);
+const MarketInsightsAdapter = () => {
+  // Use the supabaseAdmin client with service role permissions
+  const supabase = supabaseAdmin;
   const [categories, setCategories] = React.useState([]);
   const [procedures, setProcedures] = React.useState([]);
   const [loading, setLoading] = React.useState(true);

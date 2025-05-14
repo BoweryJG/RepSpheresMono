@@ -99,10 +99,6 @@ function HomePage() {
     );
   }
   
-  // Get Supabase credentials from environment variables
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
   // Always show Market Insights on the main page as a core feature
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -259,10 +255,7 @@ function HomePage() {
               boxShadow: 'inset 0 2px 15px rgba(0,0,0,0.15)'
             }
           }}>
-            <MarketInsightsAdapter 
-              supabaseUrl={supabaseUrl}
-              supabaseKey={supabaseKey}
-            />
+            <MarketInsightsAdapter />
           </Box>
         </Box>
       </Paper>
