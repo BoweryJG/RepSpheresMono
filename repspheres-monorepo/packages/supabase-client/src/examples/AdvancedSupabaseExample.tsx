@@ -572,7 +572,7 @@ const PaginationSection: React.FC = () => {
         .order('name')
         .range(from, to);
         
-      return { data, error, count };
+      return { data: data || [], error, count: count || 0 };
     },
     { pageSize: 5 }
   );
@@ -690,7 +690,7 @@ const InfiniteScrollSection: React.FC = () => {
         .order('name')
         .range(from, to);
         
-      return { data, error };
+      return { data: data || [], error };
     },
     { pageSize: 5 }
   );
