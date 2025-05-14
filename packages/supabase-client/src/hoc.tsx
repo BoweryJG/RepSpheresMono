@@ -1,38 +1,31 @@
-import React, { ComponentType, ReactNode } from 'react';
+import type { ComponentType, ReactNode, FC } from 'react';
 import { SupabaseProvider } from './context';
 import { useSession } from './hooks';
 
 /**
  * Wraps a component with SupabaseProvider.
  */
-export function withSupabase<P>(Component: ComponentType<P>): ComponentType<P> {
-  return function SupabaseWrapped(props: P) {
-    return (
-      <SupabaseProvider>
-        <Component {...props} />
-      </SupabaseProvider>
-    );
-  };
+export function withSupabase<P extends object>(Component: ComponentType<P>): FC<P> {
+  const Wrapped: FC<P> = (props) => (
+    <SupabaseProvider>
+      <Component {...props} />
+    </SupabaseProvider>
+  );
+  return Wrapped;
 }
 
 /**
  * Protects component with session check.
  * Wraps in SupabaseProvider and renders fallback if no session.
  */
-export function withAuth<P>(Component: ComponentType<P>, fallback: ReactNode = null): ComponentType<P> {
-  return function AuthWrapped(props: P) {
+export function withAuth<P extends object>(Component: ComponentType<P>, fallback: ReactNode = null): FC<P> {
+  const Wrapped: FC<P> = (props) => {
+    const session = useSession();
     return (
       <SupabaseProvider>
-        <SessionGuard {...props} />
+        {session ? <Component {...props} /> : <>{fallback}</>}
       </SupabaseProvider>
     );
   };
-
-  function SessionGuard(innerProps: P) {
-    const session = useSession();
-    if (!session) {
-      return <>{fallback}</>;
-    }
-    return <Component {...innerProps} />;
-  }
+  return Wrapped;
 }
