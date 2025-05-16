@@ -1,0 +1,19 @@
+{
+  "name": "market-insights-news-fetcher",
+  "version": "1.0.0",
+  "description": "Script to fetch and store news articles for Market Insights",
+  "main": "fetch-news.js",
+  "type": "module",
+  "scripts": {
+    "start": "node fetch-news.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "axios": "^1.6.2",
+    "dotenv": "^16.5.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
