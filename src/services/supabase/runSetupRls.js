@@ -2,7 +2,7 @@
 import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 
 // Enable colors
 colors.enable();

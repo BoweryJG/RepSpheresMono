@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import readline from 'readline';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 
 // Enable colors
 colors.enable();

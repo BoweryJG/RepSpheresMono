@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Insights</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Mock the colors package
+    window.colors = {
+      red: str => str,
+      green: str => str,
+      yellow: str => str,
+      blue: str => str,
+      magenta: str => str,
+      cyan: str => str,
+      white: str => str,
+      gray: str => str,
+      grey: str => str,
+      black: str => str,
+    };
+    
+    // Enable chaining
+    Object.keys(window.colors).forEach(color => {
+      window.colors[color].bold = str => str;
+      window.colors[color].underline = str => str;
+      window.colors[color].italic = str => str;
+    });
+
+    // Simple React component to test the app
+    function App() {
+      const [status, setStatus] = React.useState('Loading...');
+      const [isError, setIsError] = React.useState(false);
+
+      React.useEffect(() => {
+        // Test if Supabase can be initialized
+        try {
+          const supabaseUrl = 'YOUR_SUPABASE_URL';
+          const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+          
+          if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Missing Supabase URL or Anon Key');
+          }
+          
+          const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          setStatus('Successfully connected to Supabase!');
+          setIsError(false);
+          
+          // You can add more tests here, like querying a table
+          // For now, we'll just log to the console
+          console.log('Supabase client created:', supabase);
+          
+        } catch (error) {
+          console.error('Error initializing app:', error);
+          setStatus(`Error: ${error.message}`);
+          setIsError(true);
+        }
+      }, []);
+
+      return (
+        <div className="app">
+          <h1>Market Insights</h1>
+          <div className={`status ${isError ? 'error' : 'success'}`}>
+            {status}
+          </div>
+          <p>This is a simplified version of the app to test core functionality.</p>
+          <p>Check the browser console for more details.</p>
+        </div>
+      );
+    }
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

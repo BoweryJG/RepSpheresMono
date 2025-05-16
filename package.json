@@ -42,17 +42,18 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
+    "esbuild": "^0.25.4",
     "terser": "^5.39.0",
     "vite": "^6.3.4"
   },
   "dependencies": {
+    "@colors/colors": "^1.6.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "@supabase/supabase-js": "^2.49.4",
     "abort-controller": "^3.0.0",
-    "colors": "^1.4.0",
     "dotenv": "^16.5.0",
     "node-fetch": "^2.7.0",
     "react": "^18.3.0",

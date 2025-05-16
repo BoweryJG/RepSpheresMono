@@ -1,8 +1,8 @@
 // Basic tables setup script for Supabase
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import colors from 'colors';
-import { dentalProcedures } from '../../data/dentalProcedures.js';
+import colors from '../../utils/consoleColors';
+import dentalProcedures from '../../data/dentalProcedures.js';
 import aestheticProcedures from '../../data/aestheticProcedures.js';
 
 colors.enable();

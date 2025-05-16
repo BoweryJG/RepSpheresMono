@@ -10,9 +10,20 @@
  */
 
 import { supabase } from './supabaseClient.js';
-import dotenv from 'dotenv';
+import { loadAllDataToSupabase } from './dataLoader.js';
+
+// Server-side only imports (will be tree-shaken in browser)
+let runFullVerification;
+
+if (typeof window === 'undefined') {
+  // Dynamic import for server-side only
+  const dotenv = await import('dotenv');
+  dotenv.config();
+  
+  const verifyModule = await import('../../server/utils/verifySupabaseData.js');
+  runFullVerification = verifyModule.runFullVerification;
+}
 import colors from 'colors/safe.js';
-import { runFullVerification } from './verifySupabaseData.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

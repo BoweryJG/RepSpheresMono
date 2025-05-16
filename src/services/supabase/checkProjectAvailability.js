@@ -1,6 +1,6 @@
 // Script to check if the Supabase project is accessible
 import fetch from 'node-fetch';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 import dotenv from 'dotenv';
 
 // Configure colors

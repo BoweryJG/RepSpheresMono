@@ -2,18 +2,50 @@
  * Verify Supabase Data
  * Comprehensive testing tool for Supabase database health and data integrity
  * 
- * Instructions: 
- * Import and use runFullVerification() in your own scripts
- * Or run this file directly: node src/services/supabase/verifySupabaseData.js
+ * IMPORTANT: This is a server-side only utility and should NOT be imported in browser code.
+ * It uses Node.js specific APIs and will not work in the browser.
  */
 
-import { supabase } from './supabaseClient.js';
-import dotenv from 'dotenv';
-import colors from 'colors/safe.js';
+// Ensure this is only run in a Node.js environment
+if (typeof window !== 'undefined') {
+  throw new Error('This utility can only be used in a Node.js environment');
+}
 
-// Initialize environment
-dotenv.config();
-colors.enable();
+import { supabase } from '../../services/supabase/supabaseClient.js';
+
+// Simple console colors for Node.js
+const colors = {
+  green: (str) => {
+    if (typeof window === 'undefined') {
+      return `\x1b[32m${str}\x1b[0m`;
+    }
+    return str;
+  },
+  red: (str) => {
+    if (typeof window === 'undefined') {
+      return `\x1b[31m${str}\x1b[0m`;
+    }
+    return str;
+  },
+  yellow: (str) => {
+    if (typeof window === 'undefined') {
+      return `\x1b[33m${str}\x1b[0m`;
+    }
+    return str;
+  },
+  blue: (str) => {
+    if (typeof window === 'undefined') {
+      return `\x1b[34m${str}\x1b[0m`;
+    }
+    return str;
+  }
+};
+
+// Skip environment setup in browser
+if (typeof window === 'undefined') {
+  const dotenv = await import('dotenv');
+  dotenv.config();
+}
 
 // Define essential tables that should exist
 const ESSENTIAL_TABLES = {

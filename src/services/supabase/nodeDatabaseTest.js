@@ -1,6 +1,6 @@
 // Simple Supabase database connection test
 import { supabase } from './supabaseClient.js';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 
 colors.enable();
 

@@ -1,5 +1,5 @@
 // Service for fetching company data from Brave search and Firecrawl
-import 'dotenv/config'; // Load .env file into process.env
+// Environment variables are now managed by the env utility
 import { supabaseClient } from './supabase/supabaseClient.js';
 
 /**

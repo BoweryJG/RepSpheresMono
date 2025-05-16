@@ -73,7 +73,23 @@ import {
 } from 'recharts';
 
 import { supabaseDataService } from '../services/supabase/supabaseDataService';
-import { runFullVerification } from '../services/supabase/verifySupabaseData';
+
+let runFullVerification = async () => {
+  console.warn('runFullVerification is not available in the browser');
+  return { success: false, error: 'This function is only available server-side' };
+};
+
+if (typeof window === 'undefined') {
+  // Dynamic import for server-side only
+  import('../server/utils/verifySupabaseData.js')
+    .then(module => {
+      runFullVerification = module.runFullVerification;
+    })
+    .catch(err => {
+      console.error('Failed to load verifySupabaseData:', err);
+    });
+}
+
 import CompaniesTab from './DashboardTab5';
 import MetropolitanMarketsTab from './DashboardTab6';
 import MarketNewsTab from './MarketNewsTab';

@@ -1,6 +1,6 @@
 // Runner for the setupBasicTables script
 import { exec } from 'child_process';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 
 colors.enable();
 

@@ -1,19 +1,19 @@
 import { supabase } from './supabaseClient.js';
-import { 
-  dentalProcedures, 
+import dentalProcedures, { 
   dentalCategories, 
   dentalMarketGrowth, 
   dentalDemographics, 
   dentalGenderDistribution 
 } from '../../data/dentalProcedures.js';
 
-import { 
+import aestheticData from '../../data/aestheticProcedures.js';
+const { 
   aestheticProcedures, 
   aestheticCategories, 
   aestheticMarketGrowth, 
   aestheticDemographics, 
   aestheticGenderDistribution 
-} from '../../data/aestheticProcedures.js';
+} = aestheticData;
 
 import {
   dentalCompanies,

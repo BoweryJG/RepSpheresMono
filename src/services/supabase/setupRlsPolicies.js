@@ -1,7 +1,7 @@
 // Script to set up Row Level Security (RLS) policies for Supabase tables
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import colors from 'colors';
+import colors from '../../utils/consoleColors';
 
 // Configure colors
 colors.enable();

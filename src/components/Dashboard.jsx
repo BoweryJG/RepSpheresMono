@@ -57,8 +57,10 @@ import DashboardHeader from './ui/DashboardHeader';
 import DashboardTicker from './ui/DashboardTicker';
 
 // Static data fallback
-import { dentalProcedures as staticDentalProcedures, dentalCategories as staticDentalCategories } from '../data/dentalProcedures';
-import { aestheticProcedures as staticAestheticProcedures, aestheticCategories as staticAestheticCategories } from '../data/aestheticProcedures';
+import dentalData from '../data/dentalProcedures';
+const { dentalProcedures: staticDentalProcedures, dentalCategories: staticDentalCategories } = dentalData;
+import aestheticData from '../data/aestheticProcedures';
+const { aestheticProcedures: staticAestheticProcedures, aestheticCategories: staticAestheticCategories } = aestheticData;
 
 export default function Dashboard({ mcpEnabled = false, backendConnected = false }) {
   const theme = useTheme();

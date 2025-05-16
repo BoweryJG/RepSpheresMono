@@ -1,4 +1,4 @@
-import 'dotenv/config'; // Load .env file into process.env
+// Environment variables are now managed by the env utility
 
 /**
  * News Service

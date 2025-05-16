@@ -1,59 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { getEnv } from '../../utils/env';
 
-// Import dotenv for Node.js environments
-// This won't affect browser environments
-// Completely avoid dynamic imports and top-level await which cause issues in Netlify builds
-let dotenvLoaded = false;
-
-// In browser environments, we don't need dotenv
-// In Node.js environments, dotenv should be loaded by the script that imports this module
-// This avoids any top-level await or dynamic import issues in Netlify builds
-console.log('[Supabase] Environment variables will be loaded from process.env or import.meta.env');
-
-/**
- * Safe environment variable getter optimized for both browser and Node.js environments
- * 
- * @param {string} key - Environment variable key
- * @param {string} defaultValue - Default value if not found
- * @returns {string} - The environment variable value or default
- */
-const getEnv = (key, defaultValue = '') => {
-  // Check Node.js environment first (for Node scripts)
-  if (typeof process !== 'undefined' && process.env) {
-    // Check for direct environment variables (e.g. VITE_SUPABASE_URL)
-    if (process.env[key]) {
-      return process.env[key];
-    }
-    
-    // For Node.js scripts, also check without VITE_ prefix as fallback
-    if (key.startsWith('VITE_') && process.env[key.substring(5)]) {
-      return process.env[key.substring(5)];
-    }
-  }
-  
-  // Check browser context (Vite)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    if (import.meta.env[key]) {
-      return import.meta.env[key];
-    }
-  }
-  
-  // Safe warning that works in both environments
-  if (!defaultValue) {
-    const isProduction = 
-      (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD === true) ||
-      (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
-    
-    if (isProduction) {
-      console.warn(`[Supabase] Missing configuration for ${key} in production environment`);
-    }
-  }
-  
-  return defaultValue || '';
-};
+// Log environment status
+console.log('[Supabase] Environment variables will be loaded from available sources');
 
 // Get Supabase configuration from environment variables
-// No default values provided to ensure we don't expose keys in code
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 

@@ -1,11 +1,15 @@
-import 'dotenv/config'; // Load .env file into process.env
-
 /**
  * Initial Data Loader Script
  * 
  * This script populates the Supabase database with initial data for companies and news articles
  * using Brave search and Firecrawl. It fetches data for both dental and aesthetic industries.
  */
+
+// Import environment variables
+import { loadEnv } from '../../utils/env';
+
+// Load environment variables (Node.js only)
+loadEnv();
 
 import { fetchCompanyData } from '../searchService.js';
 import { fetchNewsFromExternalSources } from '../newsService.js';
