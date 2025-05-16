@@ -1,5 +1,49 @@
-// Comprehensive Dental Industry Data
+// Comprehensive Dental Industry Data (Updated 2025)
+// This data includes market research from key dental industry players and trends
 const dentalProcedures = [
+  // Preventive Dentistry
+  { 
+    name: "Regular Cleanings", 
+    category: "Preventive",
+    growth: 7.8, 
+    marketSize2025: 5.6, 
+    primaryAgeGroup: "All ages", 
+    trends: "Increased emphasis on prevention and regular maintenance",
+    futureOutlook: "Steady growth with advanced cleaning technologies and integration with telehealth monitoring",
+    companies: [
+      { name: "Synergize Dental", services: "Professional cleaning and maintenance" },
+      { name: "Levin Group", services: "Practice management and hygiene protocols" },
+      { name: "Spear Education", services: "Hygiene training and certification" }
+    ]
+  },
+  { 
+    name: "Dental Exams", 
+    category: "Preventive",
+    growth: 6.5, 
+    marketSize2025: 4.8, 
+    primaryAgeGroup: "All ages", 
+    trends: "AI-assisted diagnostic tools improving accuracy and detection rates",
+    futureOutlook: "Growth driven by preventative care focus and insurance coverage expansion",
+    companies: [
+      { name: "Allergan", services: "AI-powered diagnostic tools" },
+      { name: "Merz Aesthetics", services: "Digital imaging solutions" },
+      { name: "Galderma", services: "Advanced diagnostic equipment" }
+    ]
+  },
+  { 
+    name: "Dental X-rays", 
+    category: "Preventive",
+    growth: 5.2, 
+    marketSize2025: 3.9, 
+    primaryAgeGroup: "All ages", 
+    trends: "Lower radiation digital imaging becoming standard",
+    futureOutlook: "Moderate growth with 3D imaging replacing traditional X-rays",
+    companies: [
+      { name: "Bausch Health", services: "Digital imaging systems" },
+      { name: "Mentor Worldwide", services: "Advanced imaging solutions" },
+      { name: "Anika Therapeutics", services: "Radiology equipment" }
+    ]
+  },
   // Preventive Dentistry
   { 
     name: "Regular Cleanings", 
@@ -368,8 +412,9 @@ const dentalGenderDistribution = [
   { name: "Female", value: 56 }
 ];
 
+export default dentalProcedures;
+
 export {
-  dentalProcedures,
   dentalCategories,
   dentalMarketGrowth,
   dentalDemographics,

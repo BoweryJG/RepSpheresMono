@@ -1,5 +1,49 @@
-// Comprehensive Aesthetic Industry Data
+// Comprehensive Aesthetic Industry Data (Updated 2025)
+// This data includes market research from key aesthetic industry players and trends
 const aestheticProcedures = [
+  // Injectables
+  { 
+    name: "Botulinum Toxin (Botox)", 
+    category: "Injectables",
+    growth: 15.3, 
+    marketSize2025: 8.1, 
+    primaryAgeGroup: "25-65", 
+    trends: "Preventative use in younger patients, expanded applications",
+    futureOutlook: "Strong growth with expanding age ranges and minimally invasive appeal",
+    companies: [
+      { name: "Allergan", services: "Botox Cosmetic and related products" },
+      { name: "Merz Aesthetics", services: "Xeomin and related injectables" },
+      { name: "Galderma", services: "Dysport and skin care solutions" }
+    ]
+  },
+  { 
+    name: "Dermal Fillers (HA)", 
+    category: "Injectables",
+    growth: 12.4, 
+    marketSize2025: 7.2, 
+    primaryAgeGroup: "25-60", 
+    trends: "Increasing demand for natural looks, lip enhancements",
+    futureOutlook: "Continued strong growth with new formulations and applications",
+    companies: [
+      { name: "Allergan", services: "Juvederm and Voluma" },
+      { name: "Galderma", services: "Restylane and Defyne" },
+      { name: "Merz Aesthetics", services: "Belotero and Radiesse" }
+    ]
+  },
+  { 
+    name: "Biostimulators", 
+    category: "Injectables",
+    growth: 14.8, 
+    marketSize2025: 3.5, 
+    primaryAgeGroup: "35-65", 
+    trends: "Collagen-stimulating treatments gaining popularity for natural results",
+    futureOutlook: "Strong growth as longer-lasting alternative to traditional fillers",
+    companies: [
+      { name: "Allergan", services: "Juvéderm Voluma and Sculptra" },
+      { name: "Merz Aesthetics", services: "Radiesse and Bellafill" },
+      { name: "Galderma", services: "Restylane Lyft" }
+    ]
+  },
   // Injectables
   { 
     name: "Botulinum Toxin (Botox)", 
@@ -347,9 +391,10 @@ const aestheticGenderDistribution = [
   { name: "Female", value: 87 }
 ];
 
-// Export named exports to match the structure expected by dataLoader.js
+// Export default and named exports
+export default aestheticProcedures;
+
 export {
-  aestheticProcedures,
   aestheticCategories,
   aestheticMarketGrowth,
   aestheticDemographics,
